@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { LEARN_LESSONS } from '../data/learnLessons';
 import { LearnLesson } from '../types/isl';
 import {
@@ -11,6 +11,8 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { soundEffects } from '../services/soundEffects';
+
+const SignTutor = lazy(() => import('./SignTutor'));
 
 interface LearnModeProps {
   currentMatchScore: number;
@@ -51,95 +53,6 @@ export const LearnMode: React.FC<LearnModeProps> = ({
     lastRecognizedSign.toLowerCase() === currentLesson.label.toLowerCase() &&
     currentMatchScore >= 80;
 
-  // Render SVG Hand diagram matching pose type
-  const renderPoseGraphic = (poseType: string) => {
-    return (
-      <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center p-3 relative overflow-hidden group">
-        <svg viewBox="0 0 100 100" className="w-full h-full text-amber-400">
-          {/* Base Palm */}
-          <path
-            d="M 32 50 C 30 70 38 85 50 85 C 62 85 70 70 68 50 Z"
-            fill="rgba(245, 158, 11, 0.15)"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinejoin="round"
-          />
-
-          {poseType === 'open-palm' && (
-            <>
-              {/* 5 fingers extended */}
-              <line x1="26" y1="58" x2="16" y2="44" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="38" y1="50" x2="36" y2="22" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="46" y1="48" x2="46" y2="18" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="54" y1="50" x2="56" y2="22" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="62" y1="54" x2="66" y2="30" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-            </>
-          )}
-
-          {poseType === 'thumbs-up' && (
-            <>
-              {/* Thumb pointing straight up, fingers curled */}
-              <line x1="42" y1="55" x2="42" y2="24" stroke="currentColor" strokeWidth="5.5" strokeLinecap="round" />
-              <circle cx="54" cy="55" r="4" fill="currentColor" />
-              <circle cx="56" cy="65" r="4" fill="currentColor" />
-              <circle cx="54" cy="74" r="4" fill="currentColor" />
-            </>
-          )}
-
-          {poseType === 'fist' && (
-            <>
-              {/* Curled fingers into palm */}
-              <rect x="36" y="44" width="28" height="28" rx="8" fill="rgba(245, 158, 11, 0.3)" stroke="currentColor" strokeWidth="3" />
-              <line x1="34" y1="58" x2="44" y2="58" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-            </>
-          )}
-
-          {poseType === 'index-up' && (
-            <>
-              {/* Only index up */}
-              <line x1="44" y1="50" x2="44" y2="20" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-              <circle cx="54" cy="54" r="3.5" fill="currentColor" />
-              <circle cx="54" cy="63" r="3.5" fill="currentColor" />
-              <circle cx="54" cy="71" r="3.5" fill="currentColor" />
-            </>
-          )}
-
-          {poseType === 'peace' && (
-            <>
-              {/* Index & middle spread */}
-              <line x1="42" y1="50" x2="36" y2="22" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
-              <line x1="52" y1="50" x2="58" y2="22" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
-              <circle cx="48" cy="64" r="4" fill="currentColor" />
-            </>
-          )}
-
-          {poseType === 'three' && (
-            <>
-              <line x1="38" y1="50" x2="32" y2="22" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="48" y1="48" x2="48" y2="18" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="58" y1="50" x2="64" y2="22" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-            </>
-          )}
-
-          {poseType === 'splayed-sos' && (
-            <>
-              {/* Thumb, index, and pinky extended */}
-              <line x1="28" y1="58" x2="16" y2="44" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <line x1="42" y1="50" x2="40" y2="22" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-              <circle cx="48" cy="56" r="3.5" fill="currentColor" />
-              <circle cx="54" cy="58" r="3.5" fill="currentColor" />
-              <line x1="62" y1="54" x2="68" y2="30" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-            </>
-          )}
-        </svg>
-
-        <span className="absolute bottom-1 right-2 text-[10px] font-mono text-slate-500 uppercase">
-          ISL Sign
-        </span>
-      </div>
-    );
-  };
-
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
       {/* Header with Progress */}
@@ -179,9 +92,13 @@ export const LearnMode: React.FC<LearnModeProps> = ({
       </div>
 
       {/* Target Sign Display Card */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center gap-5">
-        {/* Hand Illustration */}
-        {renderPoseGraphic(currentLesson.svgPoseType)}
+      <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col gap-5">
+        {/* Animated 3D guide (three.js loads only here) */}
+        <Suspense
+          fallback={<div className="aspect-[4/3] w-full animate-pulse rounded-2xl border border-slate-800 bg-slate-900" />}
+        >
+          <SignTutor label={currentLesson.label} />
+        </Suspense>
 
         {/* Details & Live Match Meter */}
         <div className="flex-1 w-full space-y-3">
