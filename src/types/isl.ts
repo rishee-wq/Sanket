@@ -12,28 +12,6 @@ export interface DetectedHand {
   score: number;
 }
 
-export interface HandLandmarkResult {
-  landmarks: NormalizedLandmark[][];
-  worldLandmarks?: NormalizedLandmark[][];
-  handedness?: { categoryName: string; score: number }[][];
-}
-
-export interface SignPrediction {
-  label: string;
-  confidence: number;
-  source: 'model' | 'heuristic' | 'mock';
-  timestamp: number;
-}
-
-export interface StabilityState {
-  candidateLabel: string | null;
-  confidence: number;
-  durationMs: number;
-  requiredMs: number; // default 1000ms
-  progress: number; // 0.0 to 1.0
-  isTriggered: boolean;
-}
-
 export type AppMode = 'conversation' | 'sos' | 'learn';
 
 export interface QuickPhrase {

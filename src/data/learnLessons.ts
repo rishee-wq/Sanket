@@ -68,9 +68,9 @@ export const LEARN_LESSONS: LearnLesson[] = [
     id: 'sos',
     label: 'SOS',
     category: 'emergency',
-    description: 'Emergency signal for urgent distress. Raise hand high and spread fingers or fold thumb into fist.',
-    instruction: 'Show your hand clearly in distress sign to trigger emergency mode.',
-    tips: 'Used in SOS mode to automatically summon assistance.',
+    description: 'Emergency signal, based on the international "Signal for Help": open palm facing the camera with the thumb folded across the palm.',
+    instruction: 'Hold up four straight fingers with your thumb tucked into your palm.',
+    tips: 'Holding this sign opens the SOS screen, which you can still cancel within 5 seconds.',
     svgPoseType: 'splayed-sos',
   },
 ];

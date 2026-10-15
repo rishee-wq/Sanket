@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { AppMode, QuickPhrase, SignPrediction } from './types/isl';
+import { AppMode, QuickPhrase } from './types/isl';
 import { Navbar } from './components/Navbar';
 import { CameraView } from './components/CameraView';
 import { SentenceBuilder } from './components/SentenceBuilder';
@@ -13,12 +13,28 @@ import { QuickPhrases } from './components/QuickPhrases';
 import { SosView } from './components/SosView';
 import { LearnMode } from './components/LearnMode';
 import { GuideModal } from './components/GuideModal';
-import { signClassifier } from './services/signClassifier';
 import { soundEffects } from './services/soundEffects';
+import { useSignPredictor } from './hooks/useSignPredictor';
+import type { LiveState } from './hooks/useRecognition';
+import type { Prediction, PredictorKind } from './lib/predictor';
+
+/**
+ * Appends an accepted sign. Fingerspelled letters and digits join into one word
+ * (H, E, L, L, O -> HELLO) as long as the current word is itself spelled out;
+ * word signs are always separated by a space.
+ */
+function appendSign(sentence: string, label: string): string {
+  if (!sentence.trim()) return label;
+  const lastWord = sentence.split(' ').pop() ?? '';
+  const spelling = label.length === 1 && /^[A-Z0-9]+$/.test(lastWord);
+  if (spelling) return sentence + label;
+  return sentence.endsWith(' ') ? sentence + label : `${sentence} ${label}`;
+}
 
 export default function App() {
   const [currentMode, setCurrentMode] = useState<AppMode>('conversation');
-  const [predictorMode, setPredictorMode] = useState<'smart_heuristic' | 'mock_random' | 'tfjs_model'>('smart_heuristic');
+  const [predictorKind, setPredictorKind] = useState<PredictorKind>('tfjs');
+  const { predictor, fallbackReason } = useSignPredictor(predictorKind);
   const [sentence, setSentence] = useState<string>('');
   const [lastAddedSign, setLastAddedSign] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -27,14 +43,24 @@ export default function App() {
   // Learn Mode states
   const [targetSignForLearn, setTargetSignForLearn] = useState<string>('Hello');
   const [learnMatchScore, setLearnMatchScore] = useState<number>(0);
+  const [learnLastAccepted, setLearnLastAccepted] = useState<string | null>(null);
+
+  // Match score = the predictor's probability for the target sign (0 if it can't recognize it).
+  const handleLearnLiveUpdate = useCallback(
+    (live: LiveState) => {
+      const p = live.prediction;
+      const idx = p ? predictor?.labels.indexOf(targetSignForLearn) ?? -1 : -1;
+      setLearnMatchScore(p && idx >= 0 ? Math.round(p.probabilities[idx] * 100) : 0);
+    },
+    [predictor, targetSignForLearn]
+  );
+
+  const handleLearnAccepted = useCallback((prediction: Prediction) => {
+    setLearnLastAccepted(prediction.label);
+  }, []);
 
   // Triggered SOS state
   const [isSosEmergencyActive, setIsSosEmergencyActive] = useState<boolean>(false);
-
-  const handlePredictorModeChange = (mode: 'smart_heuristic' | 'mock_random' | 'tfjs_model') => {
-    setPredictorMode(mode);
-    signClassifier.predictorMode = mode;
-  };
 
   const handleToggleSound = () => {
     const next = !soundEnabled;
@@ -44,7 +70,7 @@ export default function App() {
 
   // Called when camera detection holds a sign > 80% confidence for 1.0 second
   const handleSignAccepted = useCallback(
-    (prediction: SignPrediction) => {
+    (prediction: Prediction) => {
       // Check for Emergency distress sign in any mode
       if (prediction.label === 'SOS') {
         setCurrentMode('sos');
@@ -55,16 +81,7 @@ export default function App() {
       setLastAddedSign(prediction.label);
       setTimeout(() => setLastAddedSign(null), 2500);
 
-      setSentence((prev) => {
-        if (!prev.trim()) {
-          return prediction.label;
-        }
-        // If single letter and previous ended without space, keep building or append with space
-        if (prediction.label.length === 1 && !prev.endsWith(' ')) {
-          return prev + prediction.label;
-        }
-        return prev.endsWith(' ') ? `${prev}${prediction.label}` : `${prev} ${prediction.label}`;
-      });
+      setSentence((prev) => appendSign(prev, prediction.label));
     },
     []
   );
@@ -109,8 +126,10 @@ export default function App() {
             setIsSosEmergencyActive(true);
           }
         }}
-        predictorMode={predictorMode}
-        onChangePredictorMode={handlePredictorModeChange}
+        predictorKind={predictorKind}
+        activePredictorKind={predictor?.kind ?? null}
+        fallbackReason={fallbackReason}
+        onChangePredictorKind={setPredictorKind}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         onOpenHelp={() => setIsGuideOpen(true)}
@@ -123,10 +142,7 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Real-time Camera Feed & Detection HUD */}
             <div className="lg:col-span-6 space-y-4">
-              <CameraView
-                onSignAccepted={handleSignAccepted}
-                activeMode="conversation"
-              />
+              <CameraView predictor={predictor} onSignAccepted={handleSignAccepted} />
               <div className="hidden lg:block">
                 <QuickPhrases onSelectPhrase={handleSelectQuickPhrase} />
               </div>
@@ -160,24 +176,19 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className="lg:col-span-6 space-y-4">
               <CameraView
-                onSignAccepted={(pred) => {
-                  if (pred.label.toLowerCase() === targetSignForLearn.toLowerCase()) {
-                    setLearnMatchScore(100);
-                    soundEffects.playAccepted();
-                  }
-                }}
-                activeMode="learn"
-                targetSignForLearn={targetSignForLearn}
-                onLiveMatchScore={setLearnMatchScore}
+                predictor={predictor}
+                onSignAccepted={handleLearnAccepted}
+                onLiveUpdate={handleLearnLiveUpdate}
               />
             </div>
             <div className="lg:col-span-6">
               <LearnMode
                 currentMatchScore={learnMatchScore}
-                lastRecognizedSign={lastAddedSign}
+                lastRecognizedSign={learnLastAccepted}
                 onSelectTargetSign={(sign) => {
                   setTargetSignForLearn(sign);
                   setLearnMatchScore(0);
+                  setLearnLastAccepted(null);
                 }}
               />
             </div>

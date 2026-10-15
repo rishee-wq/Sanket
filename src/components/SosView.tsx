@@ -196,7 +196,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                   : 'Emergency SOS System'}
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-                Holding the universal distress hand sign (splayed hand / SOS sign) or clicking trigger summons immediate help with your real-time GPS coordinates.
+                Holding the SOS sign (four fingers up, thumb tucked into the palm) or pressing the button opens this alert with your location.
               </p>
             </div>
           </div>

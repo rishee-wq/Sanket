@@ -1,13 +1,17 @@
 import React from 'react';
 import { AppMode } from '../types/isl';
 import { MessageSquare, AlertTriangle, GraduationCap, Volume2, VolumeX, Sparkles, HelpCircle } from 'lucide-react';
-import { soundEffects } from '../services/soundEffects';
+import type { PredictorKind } from '../lib/predictor';
 
 interface NavbarProps {
   currentMode: AppMode;
   onSelectMode: (mode: AppMode) => void;
-  predictorMode: 'smart_heuristic' | 'mock_random' | 'tfjs_model';
-  onChangePredictorMode: (mode: 'smart_heuristic' | 'mock_random' | 'tfjs_model') => void;
+  /** Requested predictor. */
+  predictorKind: PredictorKind;
+  /** Predictor actually in use (null while loading). */
+  activePredictorKind: PredictorKind | null;
+  fallbackReason: string | null;
+  onChangePredictorKind: (kind: PredictorKind) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenHelp: () => void;
@@ -16,8 +20,10 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentMode,
   onSelectMode,
-  predictorMode,
-  onChangePredictorMode,
+  predictorKind,
+  activePredictorKind,
+  fallbackReason,
+  onChangePredictorKind,
   soundEnabled,
   onToggleSound,
   onOpenHelp,
@@ -93,22 +99,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Sparkles className="w-3 h-3 text-amber-400" /> Model:
               </span>
               <select
-                value={predictorMode}
-                onChange={(e) =>
-                  onChangePredictorMode(e.target.value as 'smart_heuristic' | 'mock_random' | 'tfjs_model')
-                }
+                value={predictorKind}
+                onChange={(e) => onChangePredictorKind(e.target.value as PredictorKind)}
+                aria-label="Recognition model"
                 className="bg-transparent text-slate-200 text-xs px-2 py-1 rounded outline-none cursor-pointer hover:bg-slate-800"
               >
-                <option value="smart_heuristic" className="bg-slate-900 text-slate-100">
-                  Smart ISL Heuristic
+                <option value="tfjs" className="bg-slate-900 text-slate-100">
+                  Trained model (TF.js)
                 </option>
-                <option value="mock_random" className="bg-slate-900 text-slate-100">
-                  Mock Predictor (Random)
-                </option>
-                <option value="tfjs_model" className="bg-slate-900 text-slate-100">
-                  TF.js Custom Model
+                <option value="mock" className="bg-slate-900 text-slate-100">
+                  Mock (rule-based)
                 </option>
               </select>
+              {predictorKind === 'tfjs' && activePredictorKind === 'mock' && (
+                <span
+                  title={`No trained model loaded (${fallbackReason}). Using the mock predictor.`}
+                  className="px-2 text-[11px] text-amber-400"
+                >
+                  using mock
+                </span>
+              )}
             </div>
 
             {/* Sound Toggle */}
