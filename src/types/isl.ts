@@ -12,7 +12,7 @@ export interface DetectedHand {
   score: number;
 }
 
-export type AppMode = 'conversation' | 'sos' | 'learn';
+export type AppMode = 'home' | 'conversation' | 'sos' | 'learn';
 
 export interface QuickPhrase {
   id: string;

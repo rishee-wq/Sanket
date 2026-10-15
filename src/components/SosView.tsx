@@ -170,8 +170,8 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
       <div
         className={`p-6 rounded-2xl border transition-all ${
           isCountingDown || isAlertDispatched
-            ? 'bg-rose-950/80 border-rose-500 shadow-2xl shadow-rose-900/50'
-            : 'bg-slate-900 border-rose-500/30'
+            ? 'bg-rose-950/80 border-rose-500 shadow-[0_30px_80px_-40px_rgba(0,0,0,.9)] shadow-rose-900/50'
+            : 'bg-white/[.03] border-rose-500/30'
         }`}
       >
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -191,7 +191,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                 <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40">
                   ISL Distress Protocol
                 </span>
-                <span className="text-xs text-slate-400">Gesture or Button Trigger</span>
+                <span className="text-xs text-white/50">Gesture or Button Trigger</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 tracking-tight">
                 {isCountingDown
@@ -200,7 +200,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                   ? '🚨 EMERGENCY ALERT BROADCASTING'
                   : 'Emergency SOS System'}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+              <p className="text-xs sm:text-sm text-white/70 mt-1 max-w-xl">
                 Holding the SOS sign (four fingers up, thumb tucked into the palm) or pressing the button opens this alert with your location.
               </p>
             </div>
@@ -211,15 +211,15 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
             {isCountingDown ? (
               <button
                 onClick={handleCancelCountdown}
-                className="w-full sm:w-auto px-6 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border-2 border-slate-700 font-extrabold text-sm sm:text-base transition-all active:scale-95 shadow-xl flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-4 rounded-xl bg-white/[.03] hover:bg-white/[.06] text-white border-2 border-white/15 font-extrabold text-sm sm:text-base transition-all active:scale-95  flex items-center justify-center gap-2"
               >
-                <RotateCcw className="w-5 h-5 text-amber-400" />
+                <RotateCcw className="w-5 h-5 text-orange-400" />
                 <span>CANCEL SOS (False Alarm)</span>
               </button>
             ) : isAlertDispatched ? (
               <button
                 onClick={handleCancelCountdown}
-                className="w-full sm:w-auto px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-sm sm:text-base transition-all active:scale-95 shadow-xl flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-black font-black text-sm sm:text-base transition-all active:scale-95  flex items-center justify-center gap-2"
               >
                 <Check className="w-5 h-5" />
                 <span>I AM SAFE NOW (Stop Alarm)</span>
@@ -227,7 +227,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
             ) : (
               <button
                 onClick={handleManualTrigger}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-base sm:text-lg transition-all shadow-xl shadow-rose-600/40 active:scale-95 flex items-center justify-center gap-2.5"
+                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-base sm:text-lg transition-all  shadow-rose-600/40 active:scale-95 flex items-center justify-center gap-2.5"
               >
                 <AlertTriangle className="w-6 h-6 animate-pulse" />
                 <span>TRIGGER SOS NOW</span>
@@ -277,7 +277,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
       {/* Grid: GPS Location Card & Emergency Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Real-time GPS Location Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div className="sk-plate rounded-[22px] p-5  flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -288,35 +288,35 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                   <h3 className="text-base font-bold text-white">
                     Real-Time GPS Location
                   </h3>
-                  <span className="text-xs text-slate-400">Coordinates for Responders</span>
+                  <span className="text-xs text-white/50">Coordinates for Responders</span>
                 </div>
               </div>
 
               <button
                 onClick={fetchLocation}
                 disabled={isLoadingLocation}
-                className="text-xs text-sky-400 hover:text-sky-300 font-medium px-2 py-1 bg-slate-800 rounded-lg transition-colors"
+                className="text-xs text-sky-400 hover:text-sky-300 font-medium px-2 py-1 bg-white/[.06] rounded-lg transition-colors"
               >
                 {isLoadingLocation ? 'Locating...' : 'Refresh GPS'}
               </button>
             </div>
 
             {location ? (
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="text-slate-400 font-medium">Latitude:</span>
+              <div className="p-4 rounded-xl bg-black/60 border border-white/[.08] space-y-2">
+                <div className="flex items-center justify-between text-xs text-white/70">
+                  <span className="text-white/50 font-medium">Latitude:</span>
                   <span className="font-mono font-bold text-sky-400">{location.latitude.toFixed(6)}°</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="text-slate-400 font-medium">Longitude:</span>
+                <div className="flex items-center justify-between text-xs text-white/70">
+                  <span className="text-white/50 font-medium">Longitude:</span>
                   <span className="font-mono font-bold text-sky-400">{location.longitude.toFixed(6)}°</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="text-slate-400 font-medium">GPS Accuracy:</span>
+                <div className="flex items-center justify-between text-xs text-white/70">
+                  <span className="text-white/50 font-medium">GPS Accuracy:</span>
                   <span className="font-mono text-emerald-400 font-bold">±{location.accuracy} meters</span>
                 </div>
 
-                <div className="pt-2 mt-2 border-t border-slate-900 flex items-center justify-between">
+                <div className="pt-2 mt-2 border-t border-white/[.06] flex items-center justify-between">
                   <a
                     href={location.mapsUrl}
                     target="_blank"
@@ -329,74 +329,74 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center py-6">
-                <p className="text-xs text-slate-400">
+              <div className="p-4 rounded-xl bg-black/60 border border-white/[.08] text-center py-6">
+                <p className="text-xs text-white/50">
                   {locationError || (isLoadingLocation ? 'Acquiring high-accuracy GPS coordinates...' : 'Location not yet acquired')}
                 </p>
               </div>
             )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <div className="mt-4 pt-3 border-t border-white/[.07] flex items-center justify-between text-xs text-white/50">
             <span>India Emergency Helpline:</span>
             <span className="font-bold font-mono text-rose-400">Dial 112 / 108</span>
           </div>
         </div>
 
         {/* Dispatch & Communications */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div className="sk-plate rounded-[22px] p-5  flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+              <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400">
                 <PhoneCall className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">
                   One-Tap Emergency Dispatch
                 </h3>
-                <span className="text-xs text-slate-400">Quickly broadcast message with location</span>
+                <span className="text-xs text-white/50">Quickly broadcast message with location</span>
               </div>
             </div>
 
-            <div className="mb-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-300">
-              <p className="mb-2 font-semibold text-slate-200">Emergency contacts</p>
+            <div className="mb-3 rounded-xl border border-white/[.08] bg-black/50 p-3 text-xs text-white/70">
+              <p className="mb-2 font-semibold text-white/85">Emergency contacts</p>
               {contacts.length > 0 ? (
                 <ul className="space-y-1.5">
                   {contacts.map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-3">
                       <span className="truncate">
                         {c.name}
-                        {c.relation && <span className="text-slate-500"> · {c.relation}</span>}
+                        {c.relation && <span className="text-white/40"> · {c.relation}</span>}
                       </span>
-                      <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="font-mono text-amber-300 hover:text-amber-200">
+                      <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="font-mono text-orange-300 hover:text-orange-200">
                         {c.phone}
                       </a>
                     </li>
                   ))}
                 </ul>
               ) : enabled && user ? (
-                <p className="text-slate-400">
-                  No contacts saved. <Link to="/account#contacts" className="text-amber-300 underline">Add them in your account</Link>.
+                <p className="text-white/50">
+                  No contacts saved. <Link to="/account#contacts" className="text-orange-300 underline">Add them in your account</Link>.
                 </p>
               ) : enabled ? (
-                <p className="text-slate-400">
-                  <Link to="/login?next=/app" className="text-amber-300 underline">Log in</Link> to keep emergency contacts here.
+                <p className="text-white/50">
+                  <Link to="/login?next=/app" className="text-orange-300 underline">Log in</Link> to keep emergency contacts here.
                 </p>
               ) : (
-                <p className="text-slate-400">Accounts are not set up on this copy of Sanket.</p>
+                <p className="text-white/50">Accounts are not set up on this copy of Sanket.</p>
               )}
-              <p className="mt-2 text-[11px] text-slate-500">Automatic SMS isn’t built yet: copy or share the message below, or tap a number to call.</p>
+              <p className="mt-2 text-[11px] text-white/40">Automatic SMS isn’t built yet: copy or share the message below, or tap a number to call.</p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed max-h-[110px] overflow-y-auto">
+            <div className="p-3.5 rounded-xl bg-black/60 border border-white/[.08] font-mono text-xs text-white/70 leading-relaxed max-h-[110px] overflow-y-auto">
               {getEmergencyMessage()}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-800/80">
+          <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-white/[.07]">
             <button
               onClick={handleCopyMessage}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white/[.06] hover:bg-white/10 text-white/85 font-bold text-xs border border-white/15 transition-all active:scale-95"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Copied' : 'Copy SOS Text'}</span>

@@ -5,7 +5,7 @@ import { Link, navigate } from '../../lib/router';
 import { SanketMark, Wordmark } from '../Logo';
 
 const MODES = [
-  { to: '/app', label: 'Conversation', text: 'Signs to speech, speech to captions', Icon: MessageSquare },
+  { to: '/app?mode=conversation', label: 'Conversation', text: 'Signs to speech, speech to captions', Icon: MessageSquare },
   { to: '/app?mode=learn', label: 'Learn ISL', text: 'Practise signs with a live match score', Icon: GraduationCap },
   { to: '/app?mode=sos', label: 'SOS', text: 'Emergency alert with your location', Icon: AlertTriangle },
 ];

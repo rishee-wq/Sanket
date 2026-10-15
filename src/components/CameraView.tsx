@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, CameraOff, RefreshCw, Hand, CheckCircle2, Play } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
 import { useHandLandmarker } from '../hooks/useHandLandmarker';
-import { LiveState, useRecognition } from '../hooks/useRecognition';
+import { LiveState, PipelineStats, useRecognition } from '../hooks/useRecognition';
 import type { Prediction, Predictor } from '../lib/predictor';
 import { SIMULATED_POSES, SimulatedPose } from '../lib/simulatedPoses';
 import { soundEffects } from '../services/soundEffects';
@@ -12,11 +12,13 @@ interface CameraViewProps {
   onSignAccepted: (prediction: Prediction) => void;
   /** Throttled live state (a few times per second), e.g. for Learn mode scoring. */
   onLiveUpdate?: (live: LiveState) => void;
+  /** Pipeline timings, about twice a second. */
+  onStats?: (stats: PipelineStats) => void;
 }
 
 const ACCEPT_FLASH_MS = 500;
 
-export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepted, onLiveUpdate }) => {
+export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepted, onLiveUpdate, onStats }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [simulatedPose, setSimulatedPose] = useState<SimulatedPose | null>(null);
@@ -36,7 +38,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
     [onSignAccepted]
   );
 
-  const { live } = useRecognition({
+  const { live, stats } = useRecognition({
     videoRef,
     canvasRef,
     cameraActive: camera.isActive,
@@ -50,6 +52,10 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
   useEffect(() => {
     onLiveUpdate?.(live);
   }, [live, onLiveUpdate]);
+
+  useEffect(() => {
+    onStats?.(stats);
+  }, [stats, onStats]);
 
   // Start the webcam once on mount.
   useEffect(() => {
@@ -72,16 +78,16 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
       : 'Camera paused';
 
   return (
-    <div className="relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+    <div className="relative sk-plate rounded-[22px] overflow-hidden shadow-[0_30px_80px_-40px_rgba(0,0,0,.9)] flex flex-col">
       {/* Top HUD Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800/80 z-20">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-black/70 border-b border-white/[.07] z-20">
         <div className="flex items-center gap-2" role="status" aria-live="polite">
           <div
             className={`w-2.5 h-2.5 rounded-full ${
-              handsCount > 0 ? 'bg-emerald-400' : camera.isActive ? 'bg-amber-400' : 'bg-slate-500'
+              handsCount > 0 ? 'bg-emerald-400' : camera.isActive ? 'bg-orange-400' : 'bg-white/35'
             }`}
           />
-          <span className="text-xs font-medium text-slate-300">{statusText}</span>
+          <span className="text-xs font-medium text-white/70">{statusText}</span>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -89,7 +95,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
             onClick={() => (camera.isActive ? camera.stop() : camera.start())}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
               camera.isActive
-                ? 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                ? 'bg-white/[.06] text-white/70 hover:text-white hover:bg-white/10'
                 : 'bg-emerald-600 text-white hover:bg-emerald-500'
             }`}
           >
@@ -101,7 +107,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
             onClick={camera.flip}
             title="Flip camera"
             aria-label="Flip camera"
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white bg-white/[.06] hover:bg-white/10 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -109,7 +115,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
       </div>
 
       {/* Video & Canvas Viewport */}
-      <div className="relative aspect-[4/3] max-h-[440px] w-full bg-slate-950 flex items-center justify-center overflow-hidden">
+      <div className="relative aspect-[4/3] max-h-[440px] w-full bg-black/60 flex items-center justify-center overflow-hidden">
         <video
           ref={videoRef}
           playsInline
@@ -129,16 +135,16 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
 
         {!camera.isActive && !simulatedPose && (
           <div className="flex flex-col items-center justify-center p-6 text-center z-10 max-w-sm">
-            <div className="w-14 h-14 rounded-2xl bg-slate-800/80 flex items-center justify-center text-slate-400 mb-3 border border-slate-700">
+            <div className="w-14 h-14 rounded-2xl bg-white/[.07] flex items-center justify-center text-white/50 mb-3 border border-white/15">
               <Camera className="w-7 h-7" />
             </div>
-            <h4 className="text-sm font-semibold text-slate-200 mb-1">Webcam inactive</h4>
-            <p className="text-xs text-slate-400 mb-4">
+            <h4 className="text-sm font-semibold text-white/85 mb-1">Webcam inactive</h4>
+            <p className="text-xs text-white/50 mb-4">
               {camera.error || 'Start the camera to begin Indian Sign Language recognition.'}
             </p>
             <button
               onClick={() => camera.start()}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5"
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-bold text-xs rounded-xl transition-all shadow-md shadow-orange-500/20 flex items-center gap-1.5"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               Start webcam
@@ -157,7 +163,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
               className={`p-3 rounded-xl backdrop-blur-md border transition-colors ${
                 isAccepted
                   ? 'bg-emerald-950/90 border-emerald-500/60 shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-950/85 border-slate-700 shadow-xl'
+                  : 'bg-black/80 border-white/15 '
               }`}
             >
               <div className="flex items-center justify-between gap-4">
@@ -165,8 +171,8 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
                   <div
                     className={`min-w-12 h-12 px-2 rounded-xl flex items-center justify-center font-black text-xl tracking-tight ${
                       isAccepted
-                        ? 'bg-emerald-500 text-slate-950'
-                        : 'bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950'
+                        ? 'bg-emerald-500 text-black'
+                        : 'bg-gradient-to-br from-orange-500 to-orange-500 text-black'
                     }`}
                   >
                     {prediction.label}
@@ -174,7 +180,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Sign</span>
+                      <span className="text-xs uppercase tracking-wider text-white/50 font-semibold">Sign</span>
                       <span className="text-sm font-bold text-white truncate">{prediction.label}</span>
                       {isAccepted && (
                         <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-0.5">
@@ -182,27 +188,27 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-300 font-mono mt-0.5">
+                    <div className="flex items-center gap-2 text-xs text-white/70 font-mono mt-0.5">
                       <span>Confidence:</span>
-                      <span className={`font-bold ${confidencePct >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      <span className={`font-bold ${confidencePct >= 80 ? 'text-emerald-400' : 'text-orange-400'}`}>
                         {confidencePct}%
                       </span>
-                      <span className="text-slate-500">•</span>
-                      <span className="text-slate-400 text-[11px]">
+                      <span className="text-white/40">•</span>
+                      <span className="text-white/50 text-[11px]">
                         {prediction.source === 'tfjs' ? 'TF.js model' : 'Mock (simulated)'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+                <span className="text-[11px] text-white/50 font-medium whitespace-nowrap">
                   {isAccepted ? 'Lower hand to repeat' : 'Hold 1 s'}
                 </span>
               </div>
 
               {/* Hold-to-accept progress */}
               <div
-                className="w-full h-1.5 bg-slate-800/80 rounded-full mt-2.5 overflow-hidden"
+                className="w-full h-1.5 bg-white/[.07] rounded-full mt-2.5 overflow-hidden"
                 role="progressbar"
                 aria-label="Hold progress"
                 aria-valuenow={Math.round(live.progress * 100)}
@@ -210,7 +216,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
                 aria-valuemax={100}
               >
                 <div
-                  className={`h-full rounded-full ${isAccepted ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                  className={`h-full rounded-full ${isAccepted ? 'bg-emerald-400' : 'bg-orange-400'}`}
                   style={{ width: `${live.candidate === prediction.label ? live.progress * 100 : 0}%` }}
                 />
               </div>
@@ -220,9 +226,9 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
       </div>
 
       {/* Pose simulator, for testing without a webcam */}
-      <div className="px-4 py-2.5 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Hand className="w-4 h-4 text-amber-400 shrink-0" />
+      <div className="px-4 py-2.5 bg-black/60 border-t border-white/[.08] flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 text-white/50">
+          <Hand className="w-4 h-4 text-orange-400 shrink-0" />
           <span className="text-[11px] font-medium">Pose simulator:</span>
         </div>
 
@@ -234,8 +240,8 @@ export const CameraView: React.FC<CameraViewProps> = ({ predictor, onSignAccepte
               aria-pressed={simulatedPose === item.pose}
               className={`px-2 py-1 rounded text-[11px] font-semibold transition-all ${
                 simulatedPose === item.pose
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-orange-500 text-black font-bold'
+                  : 'bg-white/[.07] text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
               {item.label}

@@ -137,7 +137,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col items-center gap-4 sm:flex-row">
               <Link
-                to="/app"
+                to="/app?mode=conversation"
                 className="group flex items-center gap-4 rounded-full bg-white py-2 pl-6 pr-2 text-lg font-medium text-[#0a0400] transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
               >
                 Open the translator
@@ -166,7 +166,7 @@ export default function LandingPage() {
         </div>
         <p>A Deep Learning course project · UPES · CSAI3027P</p>
         <nav className="flex gap-5" aria-label="Footer">
-          <Link to="/app" className="hover:text-white">Translator</Link>
+          <Link to="/app" className="hover:text-white">Dashboard</Link>
           <Link to="/app?mode=learn" className="hover:text-white">Learn</Link>
           {enabled && <Link to={user ? '/account' : '/login'} className="hover:text-white">{user ? 'Account' : 'Log in'}</Link>}
         </nav>

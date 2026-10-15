@@ -1,10 +1,10 @@
 import React from 'react';
 import { AppMode } from '../types/isl';
-import { MessageSquare, AlertTriangle, GraduationCap, Volume2, VolumeX, Sparkles, HelpCircle, UserRound } from 'lucide-react';
+import { Home, MessageSquare, AlertTriangle, GraduationCap, Volume2, VolumeX, HelpCircle, UserRound } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
+import type { PredictorKind } from '../lib/predictor';
 import { Link } from '../lib/router';
 import { SanketMark, Wordmark } from './Logo';
-import type { PredictorKind } from '../lib/predictor';
 
 interface NavbarProps {
   currentMode: AppMode;
@@ -18,7 +18,18 @@ interface NavbarProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenHelp: () => void;
+  /** Transparent over the dashboard hero, solid elsewhere. */
+  overHero: boolean;
 }
+
+const TABS: { mode: AppMode; label: string; Icon: typeof Home }[] = [
+  { mode: 'home', label: 'Home', Icon: Home },
+  { mode: 'conversation', label: 'Conversation', Icon: MessageSquare },
+  { mode: 'learn', label: 'Learn', Icon: GraduationCap },
+  { mode: 'sos', label: 'SOS', Icon: AlertTriangle },
+];
+
+const iconBtn = 'grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[.08] hover:text-white';
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentMode,
@@ -30,132 +41,94 @@ export const Navbar: React.FC<NavbarProps> = ({
   soundEnabled,
   onToggleSound,
   onOpenHelp,
+  overHero,
 }) => {
   const { user, enabled } = useAuth();
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-2">
-          {/* Logo & Branding */}
-          <Link to="/" className="flex items-center gap-2.5 text-white" aria-label="Sanket home">
-            <SanketMark className="w-7 h-7" accent="#ff9a3c" />
-            <div>
-              <Wordmark className="text-2xl" />
-              <p className="text-[11px] text-slate-400 hidden sm:block mt-0.5">Indian Sign Language · voice & text</p>
-            </div>
-          </Link>
+    <header
+      className={`sticky top-0 z-40 h-[72px] transition-colors duration-500 ${
+        overHero ? 'bg-transparent' : 'border-b border-white/[.07] bg-black/75 backdrop-blur-xl'
+      }`}
+    >
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <Link to="/" className="flex items-center gap-2.5 text-white" aria-label="Sanket home">
+          <SanketMark className="h-6 w-6" accent="#ff9a3c" />
+          <Wordmark className="hidden text-[22px] sm:inline" />
+        </Link>
 
-          {/* Navigation Modes */}
-          <nav className="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
-            <button
-              onClick={() => onSelectMode('conversation')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                currentMode === 'conversation'
-                  ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Conversation</span>
-            </button>
-
-            <button
-              onClick={() => onSelectMode('learn')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                currentMode === 'learn'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Learn ISL</span>
-            </button>
-
-            <button
-              onClick={() => onSelectMode('sos')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                currentMode === 'sos'
-                  ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/40 animate-pulse'
-                  : 'text-rose-400 hover:text-rose-300 hover:bg-rose-500/10'
-              }`}
-            >
-              <AlertTriangle className="w-4 h-4" />
-              <span>SOS Alert</span>
-            </button>
-          </nav>
-
-          {/* Controls: Engine Selector, Sound, Help */}
-          <div className="flex items-center gap-2">
-            {/* Predictor Mode Selector */}
-            <div className="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
-              <span className="px-2 text-slate-400 text-[11px] flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" /> Model:
-              </span>
-              <select
-                value={predictorKind}
-                onChange={(e) => onChangePredictorKind(e.target.value as PredictorKind)}
-                aria-label="Recognition model"
-                className="bg-transparent text-slate-200 text-xs px-2 py-1 rounded outline-none cursor-pointer hover:bg-slate-800"
+        {/* Mode switcher */}
+        <nav className="flex items-center rounded-full border border-white/10 bg-black/50 p-1 backdrop-blur" aria-label="Modes">
+          {TABS.map(({ mode, label, Icon }) => {
+            const active = currentMode === mode;
+            const sos = mode === 'sos';
+            return (
+              <button
+                key={mode}
+                onClick={() => onSelectMode(mode)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all sm:px-4 ${
+                  active
+                    ? sos
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-white text-black'
+                    : sos
+                    ? 'text-rose-300 hover:bg-rose-500/10'
+                    : 'text-white/65 hover:text-white'
+                }`}
               >
-                <option value="tfjs" className="bg-slate-900 text-slate-100">
-                  Trained model (TF.js)
-                </option>
-                <option value="mock" className="bg-slate-900 text-slate-100">
-                  Mock (rule-based)
-                </option>
-              </select>
-              {predictorKind === 'tfjs' && activePredictorKind === 'mock' && (
-                <span
-                  title={`No trained model loaded (${fallbackReason}). Using the mock predictor.`}
-                  className="px-2 text-[11px] text-amber-400"
-                >
-                  using mock
-                </span>
-              )}
-            </div>
+                <Icon className="h-4 w-4" />
+                <span className={active ? 'hidden sm:inline' : 'hidden md:inline'}>{label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-            {/* Sound Toggle */}
-            <button
-              onClick={onToggleSound}
-              title={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
-              className={`p-2 rounded-lg border transition-colors ${
-                soundEnabled
-                  ? 'border-slate-800 bg-slate-900 text-amber-400 hover:bg-slate-800'
-                  : 'border-slate-800 bg-slate-900 text-slate-500 hover:bg-slate-800'
-              }`}
+        <div className="flex items-center gap-1">
+          <label className="hidden items-center lg:flex">
+            <span className="sr-only">Recognition model</span>
+            <select
+              value={predictorKind}
+              onChange={(e) => onChangePredictorKind(e.target.value as PredictorKind)}
+              title={
+                predictorKind === 'tfjs' && activePredictorKind === 'mock'
+                  ? `No trained model loaded (${fallbackReason}). Using the mock predictor.`
+                  : 'Recognition model'
+              }
+              className="cursor-pointer rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white/75 outline-none hover:border-white/25"
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
-
-            {/* Account */}
-            {enabled &&
-              (user ? (
-                <Link
-                  to="/account"
-                  title="Your account"
-                  aria-label="Your account"
-                  className="p-2 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                >
-                  <UserRound className="w-4 h-4" />
-                </Link>
-              ) : (
-                <Link
-                  to="/login?next=/app"
-                  className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 transition-colors"
-                >
-                  Log in
-                </Link>
-              ))}
-
-            {/* Help & Guide Modal Trigger */}
-            <button
-              onClick={onOpenHelp}
-              title="Indian Sign Language Guide & Help"
-              className="p-2 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-            >
-              <HelpCircle className="w-4 h-4" />
-            </button>
-          </div>
+              <option value="tfjs" className="bg-black">
+                {activePredictorKind === 'mock' && predictorKind === 'tfjs' ? 'Model: mock (no trained model)' : 'Model: trained'}
+              </option>
+              <option value="mock" className="bg-black">
+                Model: mock (rule-based)
+              </option>
+            </select>
+          </label>
+          <button
+            onClick={onToggleSound}
+            className={iconBtn}
+            aria-label={soundEnabled ? 'Mute sound cues' : 'Turn on sound cues'}
+            title={soundEnabled ? 'Mute sound cues' : 'Turn on sound cues'}
+          >
+            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-white/40" />}
+          </button>
+          <button onClick={onOpenHelp} className={iconBtn} aria-label="Guide and help" title="Guide and help">
+            <HelpCircle className="h-4 w-4" />
+          </button>
+          {enabled &&
+            (user ? (
+              <Link to="/account" className={iconBtn} aria-label="Your account" title="Your account">
+                <UserRound className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link
+                to="/login?next=/app"
+                className="ml-1 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-black hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+              >
+                Log in
+              </Link>
+            ))}
         </div>
       </div>
     </header>

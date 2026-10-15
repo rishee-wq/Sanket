@@ -112,7 +112,7 @@ export default function SignTutor({ label }: { label: string }) {
 
   if (!anim || !timeline) {
     return (
-      <div className="grid aspect-[4/3] place-items-center rounded-2xl border border-slate-800 bg-slate-950 p-6 text-center text-sm text-slate-400">
+      <div className="grid aspect-[4/3] place-items-center rounded-2xl border border-white/[.08] bg-black/60 p-6 text-center text-sm text-white/50">
         No 3D guide for “{label}” yet.
       </div>
     );
@@ -125,18 +125,18 @@ export default function SignTutor({ label }: { label: string }) {
 
   const iconBtn =
     'flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors border';
-  const off = 'border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800';
-  const on = 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200';
+  const off = 'border-white/[.08] bg-white/[.03] text-white/70 hover:text-white hover:bg-white/[.06]';
+  const on = 'border-indigo-400/50 bg-indigo-500/15 text-indigo-200';
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+    <div className="overflow-hidden rounded-2xl border border-white/[.08] bg-black/60">
       <div
         ref={wrapRef}
         className="relative aspect-[4/3] w-full cursor-grab active:cursor-grabbing bg-[radial-gradient(ellipse_at_50%_35%,#1d1510_0%,#0a0806_55%,#020617_100%)]"
       >
         {view === '3d' ? (
           webglError ? (
-            <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-slate-400">
+            <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-white/50">
               3D needs WebGL, which this browser has turned off.
             </div>
           ) : (
@@ -161,11 +161,11 @@ export default function SignTutor({ label }: { label: string }) {
         )}
 
         <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2">
-          <span className="rounded-full border border-white/10 bg-black/50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-200 backdrop-blur">
+          <span className="rounded-full border border-white/10 bg-black/50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur">
             {view === '3d' ? '3D guide' : 'Reference video'}
           </span>
           {view === '3d' && (
-            <span className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-[11px] text-slate-400 backdrop-blur">
+            <span className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-[11px] text-white/50 backdrop-blur">
               <Rotate3d className="h-3 w-3" /> Drag to turn
             </span>
           )}
@@ -178,7 +178,7 @@ export default function SignTutor({ label }: { label: string }) {
                 key={v}
                 onClick={() => setView(v)}
                 aria-pressed={view === v}
-                className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${view === v ? 'bg-white text-black' : 'text-slate-300'}`}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${view === v ? 'bg-white text-black' : 'text-white/70'}`}
               >
                 {v === '3d' ? <Box className="h-3 w-3" /> : <Video className="h-3 w-3" />}
                 {v === '3d' ? '3D' : 'Video'}
@@ -190,7 +190,7 @@ export default function SignTutor({ label }: { label: string }) {
         {/* Progress */}
         {view === '3d' && (
           <div className="absolute inset-x-0 bottom-0 h-1 bg-white/5">
-            <div className="h-full bg-cyan-400/80" style={{ width: `${progress * 100}%` }} />
+            <div className="h-full bg-indigo-400/80" style={{ width: `${progress * 100}%` }} />
           </div>
         )}
       </div>
@@ -198,17 +198,17 @@ export default function SignTutor({ label }: { label: string }) {
       {view === '3d' && (
         <>
           {/* Steps */}
-          <ol className="space-y-1.5 border-t border-slate-800 px-4 py-3" aria-live="polite">
+          <ol className="space-y-1.5 border-t border-white/[.08] px-4 py-3" aria-live="polite">
             {timeline.captions.map((c, i) => (
               <li
                 key={c}
                 className={`flex gap-2.5 text-[13px] leading-snug transition-colors ${
-                  i === captionIndex ? 'text-white' : 'text-slate-500'
+                  i === captionIndex ? 'text-white' : 'text-white/40'
                 }`}
               >
                 <span
                   className={`mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full font-mono text-[10px] ${
-                    i === captionIndex ? 'bg-cyan-400 text-slate-950' : 'bg-slate-800 text-slate-400'
+                    i === captionIndex ? 'bg-indigo-400 text-black' : 'bg-white/[.06] text-white/50'
                   }`}
                 >
                   {i + 1}
@@ -219,7 +219,7 @@ export default function SignTutor({ label }: { label: string }) {
           </ol>
 
           {/* Controls */}
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800 px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-white/[.08] px-3 py-2.5">
             <button onClick={() => setPlaying((p) => !p)} className={`${iconBtn} ${off}`} aria-label={playing ? 'Pause' : 'Play'}>
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             </button>
@@ -269,7 +269,7 @@ export default function SignTutor({ label }: { label: string }) {
           </div>
 
           {!anim.reviewed && (
-            <p className="flex gap-2 border-t border-slate-800 px-4 py-2.5 text-[11px] leading-relaxed text-slate-500">
+            <p className="flex gap-2 border-t border-white/[.08] px-4 py-2.5 text-[11px] leading-relaxed text-white/40">
               <Info className="mt-px h-3.5 w-3.5 shrink-0" />
               Shows the hand shape Sanket's demo recognises. Not yet reviewed by an ISL signer; check the ISLRTC dictionary for
               the full sign.

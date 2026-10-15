@@ -94,3 +94,69 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* Sanket plate: the dashboard card surface, like the sign cards on the landing page —
+   near-black with a faint dot grid and corner ticks. */
+.sk-plate {
+  position: relative;
+  background:
+    radial-gradient(circle at 1px 1px, rgb(244 242 239 / 0.055) 1px, transparent 1.2px) 0 0 / 18px 18px,
+    linear-gradient(180deg, #0b0a09, #060605);
+  border: 1px solid rgb(244 242 239 / 0.08);
+}
+.sk-plate::before,
+.sk-plate::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: rgb(255 154 60 / 0.55);
+  border-style: solid;
+  pointer-events: none;
+}
+.sk-plate::before {
+  top: 8px;
+  left: 8px;
+  border-width: 1px 0 0 1px;
+}
+.sk-plate::after {
+  right: 8px;
+  bottom: 8px;
+  border-width: 0 1px 1px 0;
+}
+
+@keyframes live-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 154 60 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 7px rgb(255 154 60 / 0);
+  }
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-saffron);
+  box-shadow: 0 0 10px var(--color-saffron);
+}
+.live-dot.on {
+  animation: live-ping 1.6s ease-out infinite;
+}
+
+/* Text with a light sweep across it */
+@keyframes shine {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+.shiny-text {
+  color: transparent;
+  background: linear-gradient(100deg, var(--color-glow) 35%, #fff 50%, var(--color-glow) 65%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shine 3.2s linear infinite;
+}
