@@ -149,7 +149,7 @@ export const LearnMode: React.FC<LearnModeProps> = ({
             <Trophy className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white font-['Plus_Jakarta_Sans']">
+            <h3 className="text-base font-bold text-white">
               Interactive Sign Trainer
             </h3>
             <span className="text-xs text-slate-400">
@@ -190,7 +190,7 @@ export const LearnMode: React.FC<LearnModeProps> = ({
               <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
                 Target Sign
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 font-['Plus_Jakarta_Sans']">
+              <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
                 {currentLesson.label}
               </h2>
             </div>

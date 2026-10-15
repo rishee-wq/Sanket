@@ -1,6 +1,9 @@
 import React from 'react';
 import { AppMode } from '../types/isl';
-import { MessageSquare, AlertTriangle, GraduationCap, Volume2, VolumeX, Sparkles, HelpCircle } from 'lucide-react';
+import { MessageSquare, AlertTriangle, GraduationCap, Volume2, VolumeX, Sparkles, HelpCircle, UserRound } from 'lucide-react';
+import { useAuth } from '../auth/AuthProvider';
+import { Link } from '../lib/router';
+import { SanketMark, Wordmark } from './Logo';
 import type { PredictorKind } from '../lib/predictor';
 
 interface NavbarProps {
@@ -28,29 +31,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSound,
   onOpenHelp,
 }) => {
+  const { user, enabled } = useAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2">
           {/* Logo & Branding */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 shadow-md shadow-orange-500/20 text-white font-extrabold text-xl tracking-tight">
-              सं
-            </div>
+          <Link to="/" className="flex items-center gap-2.5 text-white" aria-label="Sanket home">
+            <SanketMark className="w-7 h-7" accent="#ff9a3c" />
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-white font-['Plus_Jakarta_Sans']">
-                  Sanket
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  ISL AI
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Indian Sign Language Real-Time Voice & Text
-              </p>
+              <Wordmark className="text-2xl" />
+              <p className="text-[11px] text-slate-400 hidden sm:block mt-0.5">Indian Sign Language · voice & text</p>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation Modes */}
           <nav className="flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl">
@@ -133,6 +126,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
+
+            {/* Account */}
+            {enabled &&
+              (user ? (
+                <Link
+                  to="/account"
+                  title="Your account"
+                  aria-label="Your account"
+                  className="p-2 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <UserRound className="w-4 h-4" />
+                </Link>
+              ) : (
+                <Link
+                  to="/login?next=/app"
+                  className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  Log in
+                </Link>
+              ))}
 
             {/* Help & Guide Modal Trigger */}
             <button

@@ -15,6 +15,9 @@ import {
 import { UserLocation } from '../types/isl';
 import { soundEffects } from '../services/soundEffects';
 import { speechService } from '../services/speechService';
+import { useAuth } from '../auth/AuthProvider';
+import { useEmergencyContacts } from '../auth/useEmergencyContacts';
+import { Link } from '../lib/router';
 
 interface SosViewProps {
   onBackToNormal?: () => void;
@@ -32,6 +35,8 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
   const [isSirenPlaying, setIsSirenPlaying] = useState<boolean>(false);
 
   const sirenIntervalRef = useRef<number | null>(null);
+  const { user, enabled } = useAuth();
+  const { contacts } = useEmergencyContacts();
 
   // Fetch location on mount or trigger
   const fetchLocation = () => {
@@ -188,7 +193,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                 </span>
                 <span className="text-xs text-slate-400">Gesture or Button Trigger</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 tracking-tight font-['Plus_Jakarta_Sans']">
+              <h2 className="text-2xl sm:text-3xl font-black text-white mt-1 tracking-tight">
                 {isCountingDown
                   ? `Emergency Triggered! Dispatching in ${countdown}s`
                   : isAlertDispatched
@@ -280,7 +285,7 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white font-['Plus_Jakarta_Sans']">
+                  <h3 className="text-base font-bold text-white">
                     Real-Time GPS Location
                   </h3>
                   <span className="text-xs text-slate-400">Coordinates for Responders</span>
@@ -346,11 +351,41 @@ export const SosView: React.FC<SosViewProps> = ({ onBackToNormal, isTriggeredDir
                 <PhoneCall className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white font-['Plus_Jakarta_Sans']">
+                <h3 className="text-base font-bold text-white">
                   One-Tap Emergency Dispatch
                 </h3>
                 <span className="text-xs text-slate-400">Quickly broadcast message with location</span>
               </div>
+            </div>
+
+            <div className="mb-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-300">
+              <p className="mb-2 font-semibold text-slate-200">Emergency contacts</p>
+              {contacts.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {contacts.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3">
+                      <span className="truncate">
+                        {c.name}
+                        {c.relation && <span className="text-slate-500"> · {c.relation}</span>}
+                      </span>
+                      <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="font-mono text-amber-300 hover:text-amber-200">
+                        {c.phone}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : enabled && user ? (
+                <p className="text-slate-400">
+                  No contacts saved. <Link to="/account#contacts" className="text-amber-300 underline">Add them in your account</Link>.
+                </p>
+              ) : enabled ? (
+                <p className="text-slate-400">
+                  <Link to="/login?next=/app" className="text-amber-300 underline">Log in</Link> to keep emergency contacts here.
+                </p>
+              ) : (
+                <p className="text-slate-400">Accounts are not set up on this copy of Sanket.</p>
+              )}
+              <p className="mt-2 text-[11px] text-slate-500">Automatic SMS isn’t built yet: copy or share the message below, or tap a number to call.</p>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed max-h-[110px] overflow-y-auto">

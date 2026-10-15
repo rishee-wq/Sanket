@@ -18,7 +18,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               सं
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-white font-['Plus_Jakarta_Sans']">
+              <h3 className="text-base font-extrabold text-white">
                 How to use Sanket
               </h3>
               <p className="text-xs text-slate-400">Indian Sign Language Real-Time Communicator</p>

@@ -42,7 +42,7 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-          <h3 className="text-sm font-bold tracking-tight text-white uppercase font-['Plus_Jakarta_Sans']">
+          <h3 className="text-sm font-bold tracking-tight text-white uppercase">
             Sentence Builder
           </h3>
           {lastAddedSign && (
@@ -72,7 +72,7 @@ export const SentenceBuilder: React.FC<SentenceBuilderProps> = ({
           onChange={(e) => onSentenceChange(e.target.value)}
           placeholder="Signs from camera will appear here. You can also type or use quick phrase tiles..."
           rows={3}
-          className="w-full bg-transparent text-lg sm:text-xl font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none leading-relaxed tracking-wide font-['Plus_Jakarta_Sans']"
+          className="w-full bg-transparent text-lg sm:text-xl font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none leading-relaxed tracking-wide"
         />
 
         <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[11px] text-slate-500">

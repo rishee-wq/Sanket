@@ -63,7 +63,7 @@ export const ReverseCaptions: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className={`w-2.5 h-2.5 rounded-full ${isListening ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`} />
           <div>
-            <h3 className="text-sm font-bold tracking-tight text-white uppercase font-['Plus_Jakarta_Sans'] flex items-center gap-2">
+            <h3 className="text-sm font-bold tracking-tight text-white uppercase flex items-center gap-2">
               <span>Reverse Mode (Speech to Text)</span>
               <span className="text-[10px] lowercase font-normal px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
                 hearing person speaks
@@ -98,7 +98,7 @@ export const ReverseCaptions: React.FC = () => {
       <div className="relative min-h-[140px] p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between shadow-inner">
         {transcript || interimText ? (
           <div className="space-y-1">
-            <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-snug tracking-tight font-['Plus_Jakarta_Sans']">
+            <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-snug tracking-tight">
               {transcript}
             </span>
             {interimText && (

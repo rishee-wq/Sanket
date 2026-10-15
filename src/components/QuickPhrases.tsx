@@ -58,7 +58,7 @@ export const QuickPhrases: React.FC<QuickPhrasesProps> = ({ onSelectPhrase }) =>
       <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-          <h3 className="text-sm font-bold tracking-tight text-white uppercase font-['Plus_Jakarta_Sans']">
+          <h3 className="text-sm font-bold tracking-tight text-white uppercase">
             Quick ISL Phrases
           </h3>
         </div>
