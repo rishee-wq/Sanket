@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, Camera, Cpu, Volume2, ShieldCheck, UserPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
-import { Splash } from '../components/landing/Splash';
-import { IntroAnimation } from '../components/landing/IntroAnimation';
+import { LogoIntro } from '../components/landing/LogoIntro';
 import { LandingNav } from '../components/landing/LandingNav';
 import { Hero } from '../components/landing/Hero';
 import { SignSphere } from '../components/landing/SignSphere';
@@ -11,17 +10,17 @@ import { SanketMark, Wordmark } from '../components/Logo';
 import { useCardArt } from '../hooks/useCardArt';
 import { Link } from '../lib/router';
 
-type Phase = 'splash' | 'intro' | 'revealed';
+type Phase = 'intro' | 'revealed';
 
 const INTRO_KEY = 'sanket:intro-seen';
 
-/** Splash + intro play once per browser session (and never with reduced motion). */
+/** The logo intro plays once per browser session (and never with reduced motion). */
 function initialPhase(): Phase {
   try {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'revealed';
-    return sessionStorage.getItem(INTRO_KEY) ? 'revealed' : 'splash';
+    return sessionStorage.getItem(INTRO_KEY) ? 'revealed' : 'intro';
   } catch {
-    return 'splash';
+    return 'intro';
   }
 }
 
@@ -46,7 +45,7 @@ const STEPS = [
 export default function LandingPage() {
   const { user, enabled } = useAuth();
   const [phase, setPhase] = useState<Phase>(initialPhase);
-  const [introStarted, setIntroStarted] = useState(false);
+  const [showIntro] = useState(() => initialPhase() === 'intro');
   const { urls, progress, ready, renderLarge } = useCardArt();
   const revealed = phase === 'revealed';
 
@@ -66,17 +65,8 @@ export default function LandingPage() {
 
   return (
     <div className="bg-black text-white">
-      {phase === 'splash' && <Splash
-          progress={progress}
-          ready={ready}
-          onDone={() => {
-            setIntroStarted(true);
-            setPhase('intro');
-          }}
-        />}
-      {/* Mounts as the splash starts fading, so the intro is already underneath it, and
-          stays mounted through its own fade-out after the page is revealed. */}
-      {introStarted && <IntroAnimation onReveal={() => setPhase('revealed')} />}
+      {/* Stays mounted through its exit, while the page fades in underneath. */}
+      {showIntro && <LogoIntro progress={progress} ready={ready} onReveal={() => setPhase('revealed')} />}
 
       <LandingNav visible={revealed} />
       <main>
