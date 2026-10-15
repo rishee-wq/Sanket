@@ -69,8 +69,8 @@ export const LEARN_LESSONS: LearnLesson[] = [
     label: 'SOS',
     category: 'emergency',
     description: 'Emergency signal, based on the international "Signal for Help": open palm facing the camera with the thumb folded across the palm.',
-    instruction: 'Hold up four straight fingers with your thumb tucked into your palm.',
-    tips: 'Holding this sign opens the SOS screen, which you can still cancel within 5 seconds.',
+    instruction: 'Show your palm with the thumb folded across it, then fold your fingers down over the thumb.',
+    tips: 'In Converse, these two steps together open the SOS screen, which you can still cancel within 5 seconds. Practising here never triggers it.',
     svgPoseType: 'splayed-sos',
   },
 ];

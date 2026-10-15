@@ -25,7 +25,7 @@ export const SPHERE_CARDS: SphereCard[] = [
   },
   {
     id: 'help', title: 'Help', kind: 'sign', where: 'Sign · Everyday', hindi: 'मदद', poses: ['Help'],
-    note: 'Thumb, index and little finger out. It adds “Help” to the sentence. It is not the emergency trigger; that is the SOS sign.',
+    note: 'Thumb, index and little finger out. It adds “Help” to the sentence. It is not the emergency trigger; that is the Signal for Help.',
   },
   {
     id: 'bank', title: 'The Bank Counter', kind: 'place', where: 'Public counters', hindi: 'बैंक', poses: ['Hello', '2'],
@@ -45,7 +45,7 @@ export const SPHERE_CARDS: SphereCard[] = [
   },
   {
     id: 'emergency', title: 'When Help Can’t Be Called', kind: 'place', where: 'Emergencies', hindi: 'आपातकाल', poses: ['SOS', 'SOS'],
-    note: 'Hold the SOS sign and Sanket opens an alert with your location and the message for your emergency contacts. You have five seconds to cancel.',
+    note: 'Make the Signal for Help (thumb folded across the palm, then fingers closed over it) and Sanket opens an alert with your location and the message for your emergency contacts. You have five seconds to cancel.',
   },
   {
     id: 'yes', title: 'Yes', kind: 'sign', where: 'Sign · Answers', hindi: 'हाँ', poses: ['Yes'],
@@ -81,7 +81,7 @@ export const SPHERE_CARDS: SphereCard[] = [
   },
   {
     id: 'sos', title: 'SOS', kind: 'sign', where: 'Sign · Emergency', hindi: 'बचाओ', poses: ['SOS'],
-    note: 'Open palm with the thumb folded across it, adapted from the international Signal for Help. Held for a second, it opens the SOS screen.',
+    note: 'Open palm with the thumb folded across it, the international Signal for Help. Closing the fingers over the thumb next opens the SOS screen.',
   },
   {
     id: 'friends', title: 'Out with Friends', kind: 'place', where: 'Everyday life', hindi: 'दोस्त', poses: ['Thank you', 'Hello'],

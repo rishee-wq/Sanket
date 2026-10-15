@@ -157,7 +157,7 @@ export const SosView: React.FC<{ triggered: boolean; onExit: () => void }> = ({ 
             Need help <em className="text-rose-200">fast?</em>
           </h1>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/55">
-            Press and hold the button, or hold the SOS sign to the camera (four fingers up, thumb folded across your palm).
+            Press and hold the button, or make the Signal for Help in Converse: palm out with your thumb folded across it, then close your fingers over the thumb.
             You get five seconds to cancel before the alert shows.
           </p>
         </div>

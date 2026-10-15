@@ -140,13 +140,13 @@ export const SIGN_ANIMATIONS: Record<string, SignAnimation> = {
       start,
       { caption: 'Hold your hand up, palm facing out', ms: 750, hold: 300, right: { shape: 'flat', at: [-9, 8, 12] } },
       {
-        caption: 'Fold your thumb across your palm. Holding this opens the SOS screen',
+        caption: 'Fold your thumb across your palm',
         ms: 550,
         hold: 900,
         right: { shape: 'flatThumbTucked', at: [-9, 8, 12] },
       },
       {
-        caption: 'Then fold your fingers down over the thumb: the international Signal for Help',
+        caption: 'Close your fingers over the thumb. Both steps together open SOS: the international Signal for Help',
         ms: 600,
         hold: 900,
         right: { shape: 'fist', at: [-9, 8, 12] },

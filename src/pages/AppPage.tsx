@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '../auth/AuthProvider';
 import { AppShell, AppView } from '../components/app/AppShell';
@@ -6,6 +6,8 @@ import { useConversation } from '../hooks/useConversation';
 import { useSignPredictor } from '../hooks/useSignPredictor';
 import type { Prediction, PredictorKind } from '../lib/predictor';
 import { recordSign } from '../lib/signHistory';
+import { HelpSignalDetector } from '../lib/helpSignal';
+import type { LiveState } from '../hooks/useRecognition';
 import { soundEffects } from '../services/soundEffects';
 import { ConverseView } from './app/ConverseView';
 import { HomeView } from './app/HomeView';
@@ -30,7 +32,7 @@ export default function AppPage() {
   const { predictor, fallbackReason } = useSignPredictor(predictorKind);
   const [soundOn, setSoundOn] = useState(true);
   const [learnTarget, setLearnTarget] = useState('Hello');
-  // Bumped when the SOS sign is made, which opens SOS straight into its countdown.
+  // Bumped when the Signal for Help is made, which opens SOS straight into its countdown.
   const [sosTrigger, setSosTrigger] = useState(0);
   const convo = useConversation(profile?.preferred_language ?? 'en-IN');
 
@@ -44,16 +46,32 @@ export default function AppPage() {
 
   const onConverseSign = useCallback(
     (p: Prediction) => {
-      if (p.label === 'SOS') {
-        setSosTrigger((n) => n + 1);
-        setView('sos');
-        return;
-      }
+      // The SOS shape is half of the emergency gesture, never a word in the sentence.
+      if (p.label === 'SOS') return;
       recordSign(p.label, 'conversation');
       convo.addSign(p.label);
     },
     [convo.addSign]
   );
+
+  // Emergency: only the full two-step Signal for Help (thumb tucked, then fist) opens SOS.
+  const helpSignal = useRef(new HelpSignalDetector());
+  const [sosArmed, setSosArmed] = useState(false);
+  const expireTimer = useRef<number | undefined>(undefined);
+  const onConverseLive = useCallback((live: LiveState) => {
+    const p = live.prediction;
+    const state = helpSignal.current.update(p?.label ?? null, p?.confidence ?? 0, performance.now());
+    setSosArmed(state === 'armed');
+    window.clearTimeout(expireTimer.current);
+    if (state === 'armed') {
+      // Live updates stop when the hand leaves the frame, so let the armed state lapse on its own.
+      expireTimer.current = window.setTimeout(() => onConverseLive({ ...live, prediction: null }), 2600);
+    }
+    if (state === 'triggered') {
+      setSosTrigger((n) => n + 1);
+      setView('sos');
+    }
+  }, []);
 
   return (
     <AppShell
@@ -78,7 +96,7 @@ export default function AppPage() {
           transition={{ duration: 0.35, ease: EASE }}
         >
           {view === 'home' && <HomeView predictorKind={predictor?.kind ?? null} onGo={go} />}
-          {view === 'converse' && <ConverseView predictor={predictor} convo={convo} onSignAccepted={onConverseSign} />}
+          {view === 'converse' && <ConverseView predictor={predictor} convo={convo} onSignAccepted={onConverseSign} onLive={onConverseLive} sosArmed={sosArmed} />}
           {view === 'learn' && <LearnView predictor={predictor} target={learnTarget} onTarget={setLearnTarget} />}
           {view === 'sos' && <SosView triggered={sosTrigger > 0} onExit={() => go('converse')} />}
         </motion.div>

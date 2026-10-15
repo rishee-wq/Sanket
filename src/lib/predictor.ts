@@ -67,7 +67,11 @@ export function classifyHandShape(lm: NormalizedLandmark[]): (typeof MOCK_LABELS
   const palm = distance(wrist, lm[9]) || 1;
   const extended = (tip: number, pip: number) => distance(lm[tip], wrist) > distance(lm[pip], wrist) * 1.15;
 
-  const thumb = distance(lm[4], wrist) > distance(lm[3], wrist) * 1.08 && distance(lm[4], lm[5]) / palm > 0.55;
+  const thumb = distance(lm[4], wrist) > distance(lm[3], wrist) * 1.08 && distance(lm[4], lm[5]) / palm > 0.45;
+  // Thumb folded right across the palm (tip near the middle/ring knuckles), not just held close.
+  // Measured in the image plane: MediaPipe's depth is too noisy for this.
+  const flat = (a: NormalizedLandmark, b: NormalizedLandmark) => Math.hypot(a.x - b.x, a.y - b.y);
+  const thumbTucked = Math.min(flat(lm[4], lm[9]), flat(lm[4], lm[13])) / palm < 0.42;
   const index = extended(8, 6);
   const middle = extended(12, 10);
   const ring = extended(16, 14);
@@ -81,8 +85,11 @@ export function classifyHandShape(lm: NormalizedLandmark[]): (typeof MOCK_LABELS
   if (index && !middle && !ring && !pinky) return thumb ? 'Doctor' : '1';
   if (index && middle && !ring && !pinky) return '2';
   if (index && middle && ring && !pinky) return '3';
-  // Open palm with the thumb tucked in: the first half of the international "Signal for Help".
-  if (!thumb && index && middle && ring && pinky) return 'SOS';
+  if (!thumb && index && middle && ring && pinky) {
+    // Thumb folded across the palm: the first half of the international "Signal for Help".
+    // A relaxed open palm (thumb resting beside the index finger) is still a greeting.
+    return thumbTucked ? 'SOS' : 'Hello';
+  }
   if (thumb && index && !middle && !ring && pinky) return 'Help';
   if (!thumb && !index && !middle && !ring && pinky) return 'Water';
   if (thumbTouchesIndex && middle && ring && pinky) return 'Thank you';

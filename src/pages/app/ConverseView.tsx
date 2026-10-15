@@ -5,11 +5,15 @@ import { CameraStage } from '../../components/app/CameraStage';
 import { QUICK_PHRASES } from '../../data/quickPhrases';
 import type { Conversation } from '../../hooks/useConversation';
 import type { Prediction, Predictor } from '../../lib/predictor';
+import type { LiveState } from '../../hooks/useRecognition';
 
 interface Props {
   predictor: Predictor | null;
   convo: Conversation;
   onSignAccepted: (p: Prediction) => void;
+  onLive?: (live: LiveState) => void;
+  /** First half of the Signal for Help was seen; waiting for the fist. */
+  sosArmed?: boolean;
 }
 
 const EASE = [0.22, 0.61, 0.36, 1] as const;
@@ -29,7 +33,7 @@ const VoiceBars: React.FC = () => (
   </span>
 );
 
-export const ConverseView: React.FC<Props> = ({ predictor, convo, onSignAccepted }) => {
+export const ConverseView: React.FC<Props> = ({ predictor, convo, onSignAccepted, onLive, sosArmed }) => {
   const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,7 +52,12 @@ export const ConverseView: React.FC<Props> = ({ predictor, convo, onSignAccepted
     <div className="mx-auto grid max-w-[1440px] gap-5 px-5 pt-4 sm:px-8 lg:h-[calc(100dvh-72px-40px)] lg:grid-cols-[minmax(0,1.45fr)_minmax(380px,1fr)]">
       {/* Left: camera and phrases */}
       <div className="flex min-h-0 min-w-0 flex-col gap-4">
-        <CameraStage predictor={predictor} onSignAccepted={onSignAccepted} className="aspect-[4/5] sm:aspect-[4/3] lg:aspect-auto lg:min-h-0 lg:flex-1" />
+        <CameraStage
+          predictor={predictor}
+          onSignAccepted={onSignAccepted}
+          onLive={onLive}
+          notice={sosArmed ? 'Signal for Help: now close your fingers over your thumb to open SOS' : undefined}
+          className="aspect-[4/5] sm:aspect-[4/3] lg:aspect-auto lg:min-h-0 lg:flex-1" />
         <div className="thin-scroll -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="toolbar" aria-label="Quick phrases">
           {QUICK_PHRASES.map((p) => (
             <button

@@ -14,6 +14,8 @@ interface Props {
   onLive?: (live: LiveState) => void;
   /** Show the sign capsule and metrics. Learn mode shows its own score instead. */
   hud?: 'full' | 'minimal';
+  /** Urgent hint shown across the top of the stage. */
+  notice?: string;
   className?: string;
 }
 
@@ -56,7 +58,7 @@ const HoldRing: React.FC<{ progress: number; done: boolean }> = ({ progress, don
   );
 };
 
-export const CameraStage: React.FC<Props> = ({ predictor, onSignAccepted, onLive, hud = 'full', className = '' }) => {
+export const CameraStage: React.FC<Props> = ({ predictor, onSignAccepted, onLive, hud = 'full', notice, className = '' }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [pose, setPose] = useState<SimulatedPose | null>(null);
@@ -134,6 +136,24 @@ export const CameraStage: React.FC<Props> = ({ predictor, onSignAccepted, onLive
             transition={{ duration: 0.8 }}
             className="pointer-events-none absolute inset-0 rounded-[28px] shadow-[inset_0_0_0_3px_#ff9a3c,inset_0_0_80px_rgba(255,154,60,.35)]"
           />
+        )}
+      </AnimatePresence>
+
+      {/* Urgent notice */}
+      <AnimatePresence>
+        {notice && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute inset-x-4 top-16 z-10 flex justify-center"
+            role="alert"
+          >
+            <span className="flex items-center gap-2.5 rounded-full bg-rose-500/90 px-4 py-2 text-sm font-medium text-white shadow-[0_10px_40px_-10px_rgba(244,63,94,.8)] backdrop-blur">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+              {notice}
+            </span>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -237,7 +257,13 @@ export const CameraStage: React.FC<Props> = ({ predictor, onSignAccepted, onLive
                   <p className="font-serif text-[30px] leading-none">{p.label}</p>
                   <p className="mt-1 text-[11px] text-white/55">
                     {Math.round(p.confidence * 100)}% {p.source === 'mock' ? 'simulated' : 'confidence'} ·{' '}
-                    {done ? 'added, lower your hand to repeat' : holding ? 'hold steady' : 'hold for a second'}
+                    {p.label === 'SOS'
+                      ? 'Signal for Help, step 1 of 2'
+                      : done
+                      ? 'added, lower your hand to repeat'
+                      : holding
+                      ? 'hold steady'
+                      : 'hold for a second'}
                   </p>
                 </div>
               </motion.div>
