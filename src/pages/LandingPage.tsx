@@ -47,7 +47,7 @@ export default function LandingPage() {
   const { user, enabled } = useAuth();
   const [phase, setPhase] = useState<Phase>(initialPhase);
   const [introStarted, setIntroStarted] = useState(false);
-  const { urls, progress, ready } = useCardArt();
+  const { urls, progress, ready, renderLarge } = useCardArt();
   const revealed = phase === 'revealed';
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function LandingPage() {
       <LandingNav visible={revealed} />
       <main>
         <Hero revealed={revealed} />
-        <SignSphere urls={urls} revealed={revealed} />
+        <SignSphere urls={urls} revealed={revealed} renderLarge={renderLarge} />
 
         <section id="how" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
           <motion.div

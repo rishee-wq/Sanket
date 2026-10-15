@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SPHERE_CARDS } from '../../data/sphereCards';
-import { canvasToUrl, drawCard } from '../../lib/signArt';
 import './signSphere.css';
 
 /**
@@ -43,9 +42,11 @@ const HEADLINE = ['Every', 'sign', 'deserves', 'to be', 'heard.'];
 interface SignSphereProps {
   urls: (string | null)[];
   revealed: boolean;
+  /** Renders a high-resolution copy of a card for the lightbox. */
+  renderLarge: (index: number) => Promise<string>;
 }
 
-export const SignSphere: React.FC<SignSphereProps> = ({ urls, revealed }) => {
+export const SignSphere: React.FC<SignSphereProps> = ({ urls, revealed, renderLarge }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -319,9 +320,7 @@ export const SignSphere: React.FC<SignSphereProps> = ({ urls, revealed }) => {
     requestAnimationFrame(() => flipFrom(from));
 
     // Swap in a sharper render once it is ready.
-    const card = SPHERE_CARDS[idx];
-    const w = 1500;
-    canvasToUrl(drawCard(card, idx, N, w, card.tall ? Math.round(w * 1.25) : Math.round(w / 1.5))).then((url) => {
+    renderLarge(idx).then((url) => {
       if (token === openToken.current) setLitSrc(url);
       else URL.revokeObjectURL(url);
     });

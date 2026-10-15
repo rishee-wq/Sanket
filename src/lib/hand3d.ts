@@ -71,6 +71,8 @@ class HandMesh extends THREE.Group {
   private bones: THREE.Mesh[] = [];
   private joints: THREE.Mesh[] = [];
   private nails: THREE.Mesh[] = [];
+  /** Everything but the forearm and sleeve, for framing. */
+  readonly parts: THREE.Object3D[] = [];
   readonly wrist = new THREE.Group();
 
   constructor(skin: THREE.Material, nail: THREE.Material, sleeve: THREE.Material, left: boolean) {
@@ -111,6 +113,7 @@ class HandMesh extends THREE.Group {
       this.nails.push(n);
       this.wrist.add(n);
     }
+    this.parts.push(palm, thenar, ...this.bones, ...this.joints);
     this.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) {
         o.castShadow = true;
@@ -297,9 +300,8 @@ export class HandStage {
   /** Frames whatever hands are visible, filling about `fill` of the view. */
   frameHands(fill = 0.82, azimuth = 0, elevation = 6) {
     const box = new THREE.Box3();
-    for (const h of [this.right, this.left]) if (h.visible) box.expandByObject(h.wrist);
-    // Ignore most of the sleeve so the hand, not the arm, fills the frame.
-    box.min.y = Math.max(box.min.y, box.max.y - 30);
+    this.scene.updateMatrixWorld(true);
+    for (const h of [this.right, this.left]) if (h.visible) h.parts.forEach((p) => box.expandByObject(p));
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const vFov = THREE.MathUtils.degToRad(this.camera.fov);

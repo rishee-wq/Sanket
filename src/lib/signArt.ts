@@ -119,8 +119,21 @@ function layoutHands(poses: ArtPose[], box: { x: number; y: number; w: number; h
   });
 }
 
-/** Renders a card to a canvas of the given pixel size. */
-export function drawCard(card: SphereCard, index: number, total: number, width: number, height: number): HTMLCanvasElement {
+/** Pre-rendered 3D hands for a card, drawn into the hand box. */
+export type HandPainter = (ctx: CanvasRenderingContext2D, box: { x: number; y: number; w: number; h: number }) => void;
+
+/**
+ * Renders a card to a canvas of the given pixel size. With `paintHands` the hands come from
+ * the 3D renderer; without it (no WebGL) they fall back to a landmark drawing.
+ */
+export function drawCard(
+  card: SphereCard,
+  index: number,
+  total: number,
+  width: number,
+  height: number,
+  paintHands?: HandPainter
+): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -147,7 +160,8 @@ export function drawCard(card: SphereCard, index: number, total: number, width: 
   const box = tall
     ? { x: width * 0.12, y: height * 0.16, w: width * 0.76, h: height * 0.5 }
     : { x: width * (card.poses.length > 1 ? 0.3 : 0.4), y: height * 0.1, w: width * (card.poses.length > 1 ? 0.66 : 0.54), h: height * 0.66 };
-  for (const pts of layoutHands(card.poses, box)) drawHand(ctx, pts, accent, unit);
+  if (paintHands) paintHands(ctx, box);
+  else for (const pts of layoutHands(card.poses, box)) drawHand(ctx, pts, accent, unit);
 
   // Kicker and index.
   ctx.fillStyle = 'rgba(244,242,239,0.55)';

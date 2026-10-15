@@ -1,39 +1,41 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { HAND_CONNECTIONS } from '../../lib/handDrawing';
-import { artPoints } from '../../lib/signArt';
+import type { HandPose } from '../../lib/hand3d';
+import type { ShapeName, Vec3 } from '../../lib/handModel';
 
 /**
- * Startup animation: 21 landmarks appear, the bones draw in, the fist opens into
- * "Hello", and नमस्ते rises underneath. Then a black veil closes and the page appears.
+ * Startup animation: two 3D hands rise from rest, turn inwards and meet in नमस्ते while
+ * the word appears underneath. Then a black veil closes and the page is revealed.
  */
 
-const VIEW = 400;
-const TIMELINE = {
-  pointsIn: [0, 800],
-  bonesIn: [550, 1350],
-  open: [1500, 2300],
-  wordsIn: 2000,
-  close: 3150,
-} as const;
+const TIMELINE = { wordsIn: 2150, close: 3400 } as const;
 const VEIL_MS = 1000;
 const GONE_MS = 700;
-const FINGERTIPS = new Set([4, 8, 12, 16, 20]);
 
-const ease = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
-const span = (now: number, [a, b]: readonly [number, number]) => ease((now - a) / (b - a));
-
-/** Pose points mapped into the SVG view box, centred, with the same scale for both poses. */
-function toView(pose: Parameters<typeof artPoints>[0]): [number, number][] {
-  return artPoints(pose).map(([x, y]) => [(x - 0.5) * 760 + VIEW / 2, (y - 0.56) * 760 + VIEW / 2]);
+interface Key {
+  t: number;
+  shape: ShapeName;
+  at: Vec3;
+  rot: Vec3;
 }
+
+// Right hand keys (the left hand mirrors them).
+const KEYS: Key[] = [
+  { t: 0, shape: 'rest', at: [-17, -22, 2], rot: [-20, 15, 0] },
+  { t: 900, shape: 'rest', at: [-13, -8, 4], rot: [-10, 20, 0] },
+  { t: 1700, shape: 'flat', at: [-8, 0, 6], rot: [-6, 55, 0] },
+  { t: 2350, shape: 'flat', at: [-2.3, 2, 6], rot: [-6, 84, -8] },
+];
+
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 export const IntroAnimation: React.FC<{ onReveal: () => void }> = ({ onReveal }) => {
   const [closing, setClosing] = useState(false);
   const [gone, setGone] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [wordsIn, setWordsIn] = useState(false);
-  const dots = useRef<(SVGCircleElement | null)[]>([]);
-  const bones = useRef<(SVGLineElement | null)[]>([]);
+  const [handsIn, setHandsIn] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const revealRef = useRef(onReveal);
   revealRef.current = onReveal;
   const closingRef = useRef(false);
@@ -50,55 +52,66 @@ export const IntroAnimation: React.FC<{ onReveal: () => void }> = ({ onReveal })
   };
 
   useEffect(() => {
-    const fist = toView('No');
-    const open = toView('Hello');
-    const start = performance.now();
     let frame = 0;
+    let disposed = false;
+    let dispose = () => {};
+    const start = performance.now();
 
-    const tick = () => {
-      const now = performance.now() - start;
-      const m = span(now, TIMELINE.open);
-      const pts = fist.map(([x, y], i) => [x + (open[i][0] - x) * m, y + (open[i][1] - y) * m] as const);
+    (async () => {
+      try {
+        const [{ HandStage }, { SHAPES, blendShapes }] = await Promise.all([
+          import('../../lib/hand3d'),
+          import('../../lib/handModel'),
+        ]);
+        if (disposed || !canvasRef.current || !wrapRef.current) return;
+        const stage = new HandStage(canvasRef.current, {});
+        dispose = () => stage.dispose();
+        const { width, height } = wrapRef.current.getBoundingClientRect();
+        stage.resize(width, height);
+        stage.frame([0, 6, 4], 94, 0, 4);
+        setHandsIn(true);
 
-      pts.forEach(([x, y], i) => {
-        const el = dots.current[i];
-        if (!el) return;
-        // Points appear from the wrist outward.
-        const appear = span(now, [TIMELINE.pointsIn[0] + i * 28, TIMELINE.pointsIn[0] + i * 28 + 380]);
-        el.setAttribute('cx', x.toFixed(2));
-        el.setAttribute('cy', y.toFixed(2));
-        el.setAttribute('r', ((FINGERTIPS.has(i) ? 6 : i === 0 ? 7 : 3.6) * appear).toFixed(2));
-      });
+        const sample = (ms: number): HandPose => {
+          const next = KEYS.findIndex((k) => k.t > ms);
+          const b = KEYS[next === -1 ? KEYS.length - 1 : next];
+          const a = KEYS[next === -1 ? KEYS.length - 1 : Math.max(0, next - 1)];
+          const t = a === b ? 1 : ease((ms - a.t) / (b.t - a.t));
+          const mix = (x: Vec3, y: Vec3): Vec3 => [x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t];
+          return { shape: blendShapes(SHAPES[a.shape], SHAPES[b.shape], t), position: mix(a.at, b.at), rotation: mix(a.rot, b.rot) };
+        };
 
-      HAND_CONNECTIONS.forEach(([a, b], k) => {
-        const el = bones.current[k];
-        if (!el) return;
-        const grow = span(now, [TIMELINE.bonesIn[0] + k * 22, TIMELINE.bonesIn[0] + k * 22 + 420]);
-        const [x1, y1] = pts[a];
-        const [x2, y2] = pts[b];
-        el.setAttribute('x1', x1.toFixed(2));
-        el.setAttribute('y1', y1.toFixed(2));
-        el.setAttribute('x2', (x1 + (x2 - x1) * grow).toFixed(2));
-        el.setAttribute('y2', (y1 + (y2 - y1) * grow).toFixed(2));
-        el.style.opacity = grow > 0 ? '1' : '0';
-      });
+        const loop = () => {
+          if (disposed) return;
+          frame = requestAnimationFrame(loop);
+          const ms = Math.min(performance.now() - start, KEYS[KEYS.length - 1].t);
+          const right = sample(ms);
+          const left: HandPose = {
+            ...right,
+            position: [-right.position[0], right.position[1], right.position[2]],
+            rotation: [right.rotation[0], -right.rotation[1], -right.rotation[2]],
+          };
+          stage.setPoses(right, left);
+          stage.render();
+        };
+        loop();
+      } catch {
+        // No WebGL: the intro still shows the words.
+      }
+    })();
 
-      if (now >= TIMELINE.wordsIn) setWordsIn(true);
-      if (now >= TIMELINE.close) close();
-      if (now < TIMELINE.close + VEIL_MS) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    // rAF pauses in background tabs; never let the intro hold the page hostage.
-    const backstop = setTimeout(close, TIMELINE.close + 1500);
-
+    const wordsTimer = setTimeout(() => setWordsIn(true), TIMELINE.wordsIn);
+    const closeTimer = setTimeout(close, TIMELINE.close);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') close();
     };
     window.addEventListener('keydown', onKey);
     return () => {
+      disposed = true;
       cancelAnimationFrame(frame);
-      clearTimeout(backstop);
+      clearTimeout(wordsTimer);
+      clearTimeout(closeTimer);
       window.removeEventListener('keydown', onKey);
+      dispose();
     };
   }, []);
 
@@ -116,39 +129,20 @@ export const IntroAnimation: React.FC<{ onReveal: () => void }> = ({ onReveal })
       />
 
       <div className="relative flex flex-col items-center">
-        <svg viewBox={`0 0 ${VIEW} ${VIEW}`} className="w-[min(62vmin,420px)] h-[min(62vmin,420px)]" aria-hidden="true">
-          <defs>
-            <filter id="intro-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="5" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <g filter="url(#intro-glow)" stroke="#ff9a3c" strokeWidth="3.2" strokeLinecap="round">
-            {HAND_CONNECTIONS.map((_, k) => (
-              <line key={k} ref={(el) => void (bones.current[k] = el)} style={{ opacity: 0 }} />
-            ))}
-          </g>
-          <g filter="url(#intro-glow)">
-            {Array.from({ length: 21 }, (_, i) => (
-              <circle
-                key={i}
-                ref={(el) => void (dots.current[i] = el)}
-                r={0}
-                fill={FINGERTIPS.has(i) || i === 0 ? '#ffffff' : '#ffb877'}
-              />
-            ))}
-          </g>
-        </svg>
+        <div
+          ref={wrapRef}
+          className="h-[min(56vmin,440px)] w-[min(80vmin,620px)] transition-opacity duration-700"
+          style={{ opacity: handsIn ? 1 : 0 }}
+        >
+          <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
+        </div>
 
         <div
-          className="-mt-2 text-center transition-all duration-[1100ms] ease-[cubic-bezier(.22,.61,.36,1)]"
+          className="-mt-4 text-center transition-all duration-[1100ms] ease-[cubic-bezier(.22,.61,.36,1)]"
           style={{ opacity: wordsIn ? 1 : 0, transform: wordsIn ? 'none' : 'translateY(12px)', filter: wordsIn ? 'none' : 'blur(6px)' }}
         >
           <div className="font-deva text-[clamp(34px,6vw,58px)] leading-tight text-ink">नमस्ते</div>
-          <div className="mt-1 font-serif italic text-[clamp(16px,2vw,22px)] text-[rgba(244,242,239,.6)]">Hello.</div>
+          <div className="mt-1 font-serif text-[clamp(16px,2vw,22px)] italic text-[rgba(244,242,239,.6)]">Hello.</div>
         </div>
       </div>
 
@@ -160,7 +154,7 @@ export const IntroAnimation: React.FC<{ onReveal: () => void }> = ({ onReveal })
 
       <button
         onClick={close}
-        className="absolute right-[calc(var(--pad)+var(--safe-right))] bottom-[calc(var(--pad)+var(--safe-bottom))] min-h-11 rounded-full border border-[rgba(244,242,239,.25)] px-[18px] py-[10px] text-[11px] uppercase tracking-[.18em] text-[rgba(244,242,239,.6)] backdrop-blur-[6px] transition-colors hover:border-[rgba(255,255,255,.7)] hover:text-white"
+        className="absolute bottom-[calc(var(--pad)+var(--safe-bottom))] right-[calc(var(--pad)+var(--safe-right))] min-h-11 rounded-full border border-[rgba(244,242,239,.25)] px-[18px] py-[10px] text-[11px] uppercase tracking-[.18em] text-[rgba(244,242,239,.6)] backdrop-blur-[6px] transition-colors hover:border-[rgba(255,255,255,.7)] hover:text-white"
         style={{ opacity: closing ? 0 : 1 }}
       >
         Skip
