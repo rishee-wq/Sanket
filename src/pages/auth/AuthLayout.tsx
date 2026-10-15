@@ -27,7 +27,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, childre
         <div className="pointer-events-none absolute -left-24 top-1/4 h-[520px] w-[520px] rounded-full bg-orange-900/25 blur-[120px]" />
         <div className="relative flex h-full flex-col justify-between p-12">
           <Link to="/" className="flex items-center gap-3 text-white" aria-label="Sanket home">
-            <SanketMark className="h-7 w-7" accent="#ff9a3c" />
+            <SanketMark className="h-7 w-7" />
             <Wordmark className="text-[28px]" />
           </Link>
           <motion.blockquote
@@ -65,7 +65,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, childre
           className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-12"
         >
           <Link to="/" className="mb-10 flex items-center gap-2.5 text-white lg:hidden" aria-label="Sanket home">
-            <SanketMark className="h-6 w-6" accent="#ff9a3c" />
+            <SanketMark className="h-6 w-6" />
             <Wordmark className="text-2xl" />
           </Link>
           <h1 className="font-serif text-[40px] leading-[1.05] sm:text-5xl">{title}</h1>

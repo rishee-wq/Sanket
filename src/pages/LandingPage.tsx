@@ -150,7 +150,7 @@ export default function LandingPage() {
 
       <footer className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-12 text-sm text-white/45 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 text-white">
-          <SanketMark className="h-5 w-5" accent="#ff9a3c" />
+          <SanketMark className="h-5 w-5" />
           <Wordmark className="text-xl" />
           <span className="font-deva text-white/40">संकेत</span>
         </div>

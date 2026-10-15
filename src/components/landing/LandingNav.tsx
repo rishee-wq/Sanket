@@ -59,7 +59,7 @@ export const LandingNav: React.FC<{ visible: boolean }> = ({ visible }) => {
       >
         <Link to="/" className="flex items-center gap-2.5 text-white" aria-label="Sanket home">
           <span id="nav-logo" className="block h-6 w-6">
-            <SanketMark className="h-6 w-6" accent="#ff9a3c" />
+            <SanketMark className="h-6 w-6" />
           </span>
           <Wordmark className="text-[22px] hidden sm:inline" />
         </Link>

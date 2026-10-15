@@ -145,7 +145,7 @@ export const AppShell: React.FC<ShellProps> = ({ view, onView, soundOn, onToggle
       >
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5 text-white" aria-label="Sanket home">
-            <SanketMark className="h-6 w-6" accent="#ff9a3c" />
+            <SanketMark className="h-6 w-6" />
             <Wordmark className="text-[22px]" />
           </Link>
 
