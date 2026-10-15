@@ -4,6 +4,14 @@ export interface NormalizedLandmark {
   z: number;
 }
 
+/** One hand from MediaPipe HandLandmarker, in image coordinates of the unmirrored frame. */
+export interface DetectedHand {
+  landmarks: NormalizedLandmark[];
+  /** MediaPipe's handedness label, or null if unavailable (e.g. simulated poses). */
+  handedness: 'Left' | 'Right' | null;
+  score: number;
+}
+
 export interface HandLandmarkResult {
   landmarks: NormalizedLandmark[][];
   worldLandmarks?: NormalizedLandmark[][];
