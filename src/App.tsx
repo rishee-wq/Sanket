@@ -4,7 +4,7 @@ import { navigate, usePathname } from './lib/router';
 import LandingPage from './pages/LandingPage';
 
 // The translator pulls in MediaPipe and TF.js, so it loads only when opened.
-const TranslatorPage = lazy(() => import('./pages/TranslatorPage'));
+const AppPage = lazy(() => import('./pages/AppPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const SignupPage = lazy(() => import('./pages/auth/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
@@ -45,7 +45,7 @@ function Routes() {
     case '/':
       return <LandingPage />;
     case '/app':
-      return <TranslatorPage />;
+      return <AppPage />;
     case '/login':
       return (
         <GuestOnly>

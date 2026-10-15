@@ -95,34 +95,26 @@ a {
   }
 }
 
-/* Sanket plate: the dashboard card surface, like the sign cards on the landing page —
-   near-black with a faint dot grid and corner ticks. */
-.sk-plate {
+/* App surfaces: deep warm black, hairline border, a whisper of top light. */
+.surface {
   position: relative;
-  background:
-    radial-gradient(circle at 1px 1px, rgb(244 242 239 / 0.055) 1px, transparent 1.2px) 0 0 / 18px 18px,
-    linear-gradient(180deg, #0b0a09, #060605);
-  border: 1px solid rgb(244 242 239 / 0.08);
+  background: linear-gradient(180deg, #100f0e 0%, #0a0908 100%);
+  border: 1px solid rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 30px 80px -50px rgb(0 0 0 / 0.9);
 }
-.sk-plate::before,
-.sk-plate::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: rgb(255 154 60 / 0.55);
-  border-style: solid;
-  pointer-events: none;
+.surface-glass {
+  background: rgb(10 9 8 / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
-.sk-plate::before {
-  top: 8px;
-  left: 8px;
-  border-width: 1px 0 0 1px;
+.dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgb(244 242 239 / 0.06) 1px, transparent 1.2px);
+  background-size: 18px 18px;
 }
-.sk-plate::after {
-  right: 8px;
-  bottom: 8px;
-  border-width: 0 1px 1px 0;
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.12) transparent;
 }
 
 @keyframes live-ping {

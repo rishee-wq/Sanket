@@ -5,11 +5,11 @@ University Deep Learning course project (UPES, CSAI3027P): a sign language recog
 
 ## What's in the app
 
-- **Landing page** (`/`): startup splash and a 3D नमस्ते intro, a hero, and a draggable 3D sphere of sign and place cards with a grid view and lightbox.
-- **Dashboard** (`/app`): live cards for pipeline status (Signal check), sign of the day (turning 3D hand), today's signs, a week pulse, a learning path and SOS readiness. Activity is stored only in the browser.
-- **Conversation**: webcam with hand landmarks, live readout (current sign, hold progress, FPS, latency), sentence builder with text-to-speech, speech-to-text captions for the hearing person, quick phrases.
-- **Learn**: an animated 3D hand demonstrates each sign step by step (drag to rotate, slow motion, left-handed mirror, body silhouette, skin tones); the camera scores your attempt.
-- **SOS**: emergency screen with a 5-second cancel countdown, your location and your saved emergency contacts. SMS is not sent automatically yet.
+- **Landing page** (`/`): a logo-forming startup animation, a hero, and a draggable 3D sphere of sign and place cards with a grid view and lightbox.
+- **Home** (`/app`): a bento dashboard with the conversation entry point, the next lesson (turning 3D hand), today's signs, streak, SOS readiness, recent signs and a week waveform. Activity is stored only in the browser.
+- **Converse**: a full-bleed camera stage with a live sign capsule and hold ring, plus a chat-style thread: your signed sentences on one side, the hearing person's speech as large captions on the other. Quick phrases speak instantly.
+- **Learn**: watch an animated 3D hand demonstrate each sign (drag to rotate, slow motion, left-handed mirror, body silhouette, skin tones), then copy it on camera and watch the match ring fill.
+- **SOS**: press and hold (or make the SOS sign), get a 5-second countdown to cancel, then a high-contrast "I am deaf and need help" screen with Call 112, your location and your saved contacts. SMS is not sent automatically yet.
 - **Accounts** (optional): sign up, log in, email confirmation, password reset, profile, emergency contacts, change email/password, delete account. The translator works without an account.
 
 ## Run locally

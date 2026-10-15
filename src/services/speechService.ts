@@ -98,11 +98,14 @@ class SpeechService {
   }
 
   // Speech-to-Text (Reverse Mode)
-  public startListening(callbacks: {
-    onTranscript: (transcript: string, isFinal: boolean) => void;
-    onStateChange: (isListening: boolean) => void;
-    onError: (error: string) => void;
-  }) {
+  public startListening(
+    callbacks: {
+      onTranscript: (transcript: string, isFinal: boolean) => void;
+      onStateChange: (isListening: boolean) => void;
+      onError: (error: string) => void;
+    },
+    lang = 'en-IN'
+  ) {
     if (!this.isSpeechRecognitionSupported()) {
       callbacks.onError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
       return;
@@ -123,7 +126,7 @@ class SpeechService {
       this.recognition = new SpeechRec();
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
-      this.recognition.lang = 'en-US';
+      this.recognition.lang = lang;
 
       this.recognition.onstart = () => {
         this.isListening = true;

@@ -56,7 +56,7 @@ export const Hero: React.FC<{ revealed: boolean }> = ({ revealed }) => {
           className="flex flex-col items-center gap-6 sm:flex-row"
         >
           <Link
-            to="/app?mode=conversation"
+            to="/app?view=converse"
             className="group flex items-center gap-4 rounded-full bg-white py-2 pl-6 pr-2 text-lg font-medium text-[#0a0400] transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
           >
             Start Translating

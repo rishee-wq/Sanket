@@ -5,15 +5,15 @@ import { Link, navigate } from '../../lib/router';
 import { SanketMark, Wordmark } from '../Logo';
 
 const MODES = [
-  { to: '/app?mode=conversation', label: 'Conversation', text: 'Signs to speech, speech to captions', Icon: MessageSquare },
-  { to: '/app?mode=learn', label: 'Learn ISL', text: 'Practise signs with a live match score', Icon: GraduationCap },
-  { to: '/app?mode=sos', label: 'SOS', text: 'Emergency alert with your location', Icon: AlertTriangle },
+  { to: '/app?view=converse', label: 'Conversation', text: 'Signs to speech, speech to captions', Icon: MessageSquare },
+  { to: '/app?view=learn', label: 'Learn ISL', text: 'Practise signs with a live match score', Icon: GraduationCap },
+  { to: '/app?view=sos', label: 'SOS', text: 'Emergency alert with your location', Icon: AlertTriangle },
 ];
 
 const LINKS = [
   { to: '/#signs', label: 'Who It Helps' },
   { to: '/#how', label: 'How It Works' },
-  { to: '/app?mode=learn', label: 'Learn ISL' },
+  { to: '/app?view=learn', label: 'Learn ISL' },
 ];
 
 /** Fixed, transparent landing navbar with a full-screen menu on small screens. */

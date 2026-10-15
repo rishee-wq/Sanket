@@ -10,8 +10,8 @@ export const HAND_CONNECTIONS: [number, number][] = [
 ];
 
 const FINGERTIPS = new Set([4, 8, 12, 16, 20]);
-const SLOT_COLORS = ['#06b6d4', '#f59e0b'];
-const ACCEPTED_COLOR = '#10b981';
+const SLOT_COLORS = ['#ff9a3c', '#b4c0ff'];
+const ACCEPTED_COLOR = '#ffffff';
 
 /** Draws landmarks over a canvas whose pixel size matches the video frame. */
 export function drawHands(ctx: CanvasRenderingContext2D, hands: DetectedHand[], mirrored: boolean, accepted: boolean) {

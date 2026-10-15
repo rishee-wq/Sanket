@@ -45,7 +45,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>) {
       if (id !== requestId.current) return;
       setError(
         err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Camera permission was denied. Allow camera access in your browser, or try the pose simulator below.'
+          ? 'Camera permission was denied. Allow camera access in your browser, or try the hand simulator.'
           : `Could not start the camera${err instanceof Error ? `: ${err.message}` : ''}.`
       );
       setIsActive(false);
