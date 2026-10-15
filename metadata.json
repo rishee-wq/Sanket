@@ -1,0 +1,6 @@
+{
+  "name": "Sanket - Real-Time Indian Sign Language (ISL) Recognition",
+  "description": "Real-time Indian Sign Language (ISL) recognition app converting hand gestures into text and speech, with conversation, SOS emergency alert, and learning modes.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
