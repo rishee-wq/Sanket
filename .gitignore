@@ -5,7 +5,6 @@ coverage/
 .DS_Store
 *.log
 .env*
-!.env.example
 
 # Too large for GitHub (>100 MB)
 dataset/American Hand Signs Dataset.zip
