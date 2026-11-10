@@ -1,8 +1,7 @@
 import React, { useId, useState } from 'react';
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
 
-const inputClass =
-  'w-full rounded-xl border border-white/12 bg-white/[.04] px-4 py-3 text-[15px] text-ink placeholder:text-white/30 outline-none transition-colors hover:border-white/25 focus:border-saffron focus:bg-white/[.06] focus:ring-4 focus:ring-saffron/15 disabled:opacity-50 aria-[invalid=true]:border-rose-400/70';
+const inputClass = 'field';
 
 type FieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -18,7 +17,7 @@ export const TextField = React.forwardRef<HTMLInputElement, FieldProps>(
     return (
       <div className={className}>
         <div className="mb-2 flex items-baseline justify-between gap-3">
-          <label htmlFor={id} className="text-sm font-medium text-white/85">
+          <label htmlFor={id} className="text-[15px] font-semibold">
             {label}
           </label>
           {trailing}
@@ -32,11 +31,11 @@ export const TextField = React.forwardRef<HTMLInputElement, FieldProps>(
           {...input}
         />
         {error ? (
-          <p id={`${id}-error`} className="mt-2 text-[13px] text-rose-300">
+          <p id={`${id}-error`} className="mt-2 text-[14px] font-semibold text-alarm">
             {error}
           </p>
         ) : hint ? (
-          <p id={`${id}-hint`} className="mt-2 text-[13px] text-white/45">
+          <p id={`${id}-hint`} className="mt-2 text-[14px] text-mute">
             {hint}
           </p>
         ) : null}
@@ -63,7 +62,7 @@ export const PasswordField: React.FC<
 > = ({ showStrength, value, ...rest }) => {
   const [visible, setVisible] = useState(false);
   const { score, label } = passwordStrength(String(value ?? ''));
-  const colors = ['bg-rose-400', 'bg-rose-400', 'bg-amber-400', 'bg-lime-400', 'bg-emerald-400'];
+  const colors = ['bg-alarm', 'bg-alarm', 'bg-signal-deep', 'bg-go', 'bg-go'];
 
   return (
     <div>
@@ -73,7 +72,7 @@ export const PasswordField: React.FC<
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? 'Hide password' : 'Show password'}
-          className="absolute right-1.5 top-[34px] grid h-10 w-10 place-items-center rounded-lg text-white/50 hover:text-white"
+          className="absolute right-1 top-[33px] grid h-10 w-10 place-items-center rounded text-mute hover:text-ink"
         >
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
@@ -82,10 +81,10 @@ export const PasswordField: React.FC<
         <div className="mt-2.5 flex items-center gap-3" aria-live="polite">
           <div className="flex flex-1 gap-1.5">
             {[1, 2, 3, 4].map((i) => (
-              <span key={i} className={`h-1 flex-1 rounded-full ${i <= Math.max(1, score) ? colors[score] : 'bg-white/10'}`} />
+              <span key={i} className={`h-2 flex-1 border border-ink ${i <= Math.max(1, score) ? colors[score] : 'bg-white'}`} />
             ))}
           </div>
-          <span className="w-16 text-right text-xs text-white/55">{label}</span>
+          <span className="w-16 text-right text-xs text-mute">{label}</span>
         </div>
       )}
     </div>
@@ -95,16 +94,12 @@ export const PasswordField: React.FC<
 export const Alert: React.FC<{ kind: 'error' | 'success'; children: React.ReactNode }> = ({ kind, children }) => (
   <div
     role={kind === 'error' ? 'alert' : 'status'}
-    className={`flex gap-3 rounded-xl border p-3.5 text-sm ${
-      kind === 'error'
-        ? 'border-rose-400/30 bg-rose-500/10 text-rose-100'
-        : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'
-    }`}
+    className={`flex gap-3 rounded-md border-2 bg-white p-3 text-[15px] ${kind === 'error' ? 'border-alarm' : 'border-go'}`}
   >
     {kind === 'error' ? (
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-alarm" />
     ) : (
-      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-go" />
     )}
     <div>{children}</div>
   </div>
@@ -120,7 +115,7 @@ export const SubmitButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement
   <button
     type="submit"
     disabled={busy || disabled}
-    className={`flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-[15px] font-semibold text-[#0a0400] transition-all hover:shadow-[0_0_24px_rgba(255,255,255,.25)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none ${className}`}
+    className={`btn btn-ink w-full !min-h-[50px] text-[16px] ${className}`}
     {...rest}
   >
     {busy && <Loader2 className="h-4 w-4 animate-spin" />}

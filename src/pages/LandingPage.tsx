@@ -1,165 +1,207 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { ArrowRight, Camera, Cpu, Volume2, ShieldCheck, UserPlus } from 'lucide-react';
+import { ArrowRight, Camera, GraduationCap, Mic, Siren } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
-import { LogoIntro } from '../components/landing/LogoIntro';
-import { LandingNav } from '../components/landing/LandingNav';
-import { Hero } from '../components/landing/Hero';
-import { SignSphere } from '../components/landing/SignSphere';
 import { SanketMark, Wordmark } from '../components/Logo';
-import { useCardArt } from '../hooks/useCardArt';
 import { Link } from '../lib/router';
 
-type Phase = 'intro' | 'revealed';
-
-const INTRO_KEY = 'sanket:intro-seen';
-
-/** The logo intro plays once per browser session (and never with reduced motion). */
-function initialPhase(): Phase {
-  try {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'revealed';
-    return sessionStorage.getItem(INTRO_KEY) ? 'revealed' : 'intro';
-  } catch {
-    return 'intro';
-  }
+interface Numbers {
+  words: number;
+  wordAccuracy: number;
+  letters: number;
+  letterAccuracy: number;
 }
 
+/** Headline numbers come from the training reports, so the page can never drift from the models. */
+function useNumbers(): Numbers | null {
+  const [numbers, setNumbers] = useState<Numbers | null>(null);
+  useEffect(() => {
+    const base = `${import.meta.env.BASE_URL}model/`;
+    const get = (name: string) =>
+      fetch(`${base}${name}/report.json`).then((r) => (r.ok && r.headers.get('content-type')?.includes('json') ? r.json() : Promise.reject()));
+    Promise.all([get('dynamic'), get('static')]).then(
+      ([d, s]) =>
+        setNumbers({
+          words: d.labels.length - 1,
+          wordAccuracy: d.test.word_accuracy,
+          letters: s.labels.filter((l: string) => !l.startsWith('_')).length,
+          letterAccuracy: s.test.accuracy,
+        }),
+      () => setNumbers(null)
+    );
+  }, []);
+  return numbers;
+}
+
+const FEATURES = [
+  {
+    icon: Camera,
+    title: 'Sign, and it speaks',
+    hindi: 'इशारा करें, यह बोलेगा',
+    text: 'Word signs and fingerspelling are read from your webcam and joined into a sentence. One key says it aloud.',
+  },
+  {
+    icon: Mic,
+    title: 'They speak, you read',
+    hindi: 'वे बोलें, आप पढ़ें',
+    text: "The other person's speech becomes large captions next to your sentence, so the conversation goes both ways.",
+  },
+  {
+    icon: GraduationCap,
+    title: 'Learn the signs',
+    hindi: 'इशारे सीखें',
+    text: "Watch a real signer's hand movement, copy it on camera, and the model tells you when it reads the sign.",
+  },
+  {
+    icon: Siren,
+    title: 'SOS without a voice',
+    hindi: 'बिना आवाज़ के मदद',
+    text: 'Hold one button, or make the Signal for Help, to show an alert with your location and emergency contacts.',
+  },
+];
+
 const STEPS = [
-  {
-    Icon: Camera,
-    title: 'Your camera sees 21 points per hand',
-    text: 'MediaPipe finds both hands and tracks every joint, right in the browser. Lighting and background matter far less than with raw video.',
-  },
-  {
-    Icon: Cpu,
-    title: 'A neural network reads the sign',
-    text: 'A TensorFlow model built with 1D convolutions classifies the hand shape. A sign is only accepted after it is held steadily for a second.',
-  },
-  {
-    Icon: Volume2,
-    title: 'Words become speech, replies become captions',
-    text: 'Signs build a sentence that Sanket speaks aloud. The hearing person answers out loud and sees their words appear as large captions.',
-  },
+  ['01', 'Find the hands', 'A pretrained detector and landmark network (MediaPipe) return 21 points per hand. Video never leaves your device.'],
+  ['02', 'Normalise', 'Each hand is moved to the origin and scaled, so position and distance from the camera stop mattering.'],
+  ['03', 'Classify', 'A 2-D CNN reads letters from one frame. A dilated temporal CNN reads words from the last second of movement.'],
+  ['04', 'Decide', 'A hold gate and peak-picking turn noisy per-frame guesses into one committed sign, then a trie suggests the word.'],
 ];
 
 export default function LandingPage() {
   const { user, enabled } = useAuth();
-  const [phase, setPhase] = useState<Phase>(initialPhase);
-  const [showIntro] = useState(() => initialPhase() === 'intro');
-  const { urls, progress, ready, renderLarge } = useCardArt();
-  const revealed = phase === 'revealed';
-
-  useEffect(() => {
-    document.body.classList.toggle('locked', !revealed);
-    if (revealed) {
-      try {
-        sessionStorage.setItem(INTRO_KEY, '1');
-      } catch {
-        // Private mode: the intro simply plays again next time.
-      }
-      // Arriving at /#signs or /#how: jump there once the page is visible.
-      if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
-    }
-    return () => document.body.classList.remove('locked');
-  }, [revealed]);
+  const numbers = useNumbers();
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
   return (
-    <div className="bg-black text-white">
-      {/* Stays mounted through its exit, while the page fades in underneath. */}
-      {showIntro && <LogoIntro progress={progress} ready={ready} onReveal={() => setPhase('revealed')} />}
+    <div className="min-h-dvh">
+      <header className="border-b-2 border-ink">
+        <div className="mx-auto flex h-14 max-w-[1300px] items-center justify-between px-[var(--pad)]">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="Sanket home">
+            <SanketMark className="h-8 w-8" />
+            <Wordmark className="text-[26px]" />
+          </Link>
+          <nav className="flex items-center gap-2">
+            {enabled && (
+              <Link to={user ? '/account' : '/login'} className="btn btn-bare btn-sm">
+                {user ? 'Account' : 'Log in'}
+              </Link>
+            )}
+            <Link to="/app" className="btn btn-ink btn-sm">
+              Open translator <ArrowRight className="h-4 w-4" />
+            </Link>
+          </nav>
+        </div>
+      </header>
 
-      <LandingNav visible={revealed} />
       <main>
-        <Hero revealed={revealed} />
-        <SignSphere urls={urls} revealed={revealed} renderLarge={renderLarge} />
-
-        <section id="how" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.6 }}
-            className="max-w-2xl"
-          >
-            <p className="text-xs uppercase tracking-[.24em] text-saffron">How it works</p>
-            <h2 className="mt-4 font-serif text-4xl leading-[1.05] sm:text-6xl">
-              From a raised hand to a spoken sentence, <em className="text-glow">in about a second.</em>
-            </h2>
-          </motion.div>
-
-          <ol className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3">
-            {STEPS.map(({ Icon, title, text }, i) => (
-              <motion.li
-                key={title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ delay: i * 0.12, duration: 0.6 }}
-                className="flex flex-col gap-5 bg-[#060606] p-8"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-saffron">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="font-mono text-xs text-white/35">0{i + 1}</span>
-                </div>
-                <h3 className="text-xl font-semibold leading-snug">{title}</h3>
-                <p className="text-[15px] leading-relaxed text-white/60">{text}</p>
-              </motion.li>
-            ))}
-          </ol>
-
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-white/10 bg-[#060606] p-6 text-sm text-white/60">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-periwinkle" />
-            <p>
-              Video never leaves your device: hand tracking and recognition run in the browser. An account only stores your
-              name, your emergency contacts and your preferences.
-            </p>
+        {/* Hero: a station name board */}
+        <section className="border-b-2 border-ink bg-signal">
+          <div className="mx-auto grid max-w-[1300px] gap-8 px-[var(--pad)] py-[clamp(36px,7vw,88px)] lg:grid-cols-[1.5fr_1fr] lg:items-end">
+            <div>
+              <p className="tag">Indian Sign Language → text and speech · in your browser</p>
+              <h1 className="display mt-4 text-[clamp(64px,13vw,190px)]">
+                Where hands
+                <br />
+                speak.
+              </h1>
+              <p className="deva mt-3 text-[clamp(26px,4.4vw,56px)] font-extrabold leading-tight">जहाँ हाथ बोलते हैं।</p>
+            </div>
+            <div>
+              <p className="max-w-[40ch] text-[19px] leading-snug">
+                Sanket reads ISL signs from a webcam and says them aloud, so deaf and hard-of-hearing people can be
+                understood at the clinic, the counter and at home.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Link to="/app" className="btn btn-ink !min-h-[54px] px-6 text-[17px]">
+                  Start translating <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link to="/app?view=learn" className="btn !min-h-[54px] px-6 text-[17px]">
+                  Learn signs
+                </Link>
+              </div>
+              <p className="tag mt-4">No install · no account needed · video stays on your device</p>
+            </div>
           </div>
         </section>
 
-        <section className="relative overflow-hidden border-y border-white/10">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[480px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-900/25 blur-[140px]" />
-          <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-8 px-6 py-28 text-center">
-            <h2 className="font-serif text-4xl leading-[1.05] sm:text-6xl">Start a conversation now.</h2>
-            <p className="max-w-lg text-lg text-white/65">
-              The translator works without an account. Create one to keep emergency contacts ready on the SOS screen.
-            </p>
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <Link
-                to="/app?view=converse"
-                className="group flex items-center gap-4 rounded-full bg-white py-2 pl-6 pr-2 text-lg font-medium text-[#0a0400] transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-              >
-                Open the translator
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-saffron-deep group-hover:bg-[#d95f10]">
-                  <ArrowRight className="h-5 w-5 text-white" />
-                </span>
+        {/* Numbers, straight from the training reports */}
+        <section className="border-b-2 border-ink bg-ink text-paper">
+          <dl className="mx-auto grid max-w-[1300px] grid-cols-2 px-[var(--pad)] md:grid-cols-4">
+            {[
+              [numbers ? String(numbers.words) : '70', 'word signs', 'INCLUDE dataset'],
+              [numbers ? pct(numbers.wordAccuracy) : '–', 'word test accuracy', 'held-out videos'],
+              [numbers ? String(numbers.letters) : '35', 'letters and digits', 'for fingerspelling'],
+              [numbers ? pct(numbers.letterAccuracy) : '–', 'letter test accuracy', 'held-out images'],
+            ].map(([value, label, note], i) => (
+              <div key={label} className={`py-5 ${i % 2 ? 'pl-4' : ''} ${i ? 'md:border-l-2 md:border-paper/25 md:pl-5' : ''}`}>
+                <dd className="display text-[clamp(44px,6vw,80px)] text-signal">{value}</dd>
+                <dt className="mt-1 text-[16px] font-semibold">{label}</dt>
+                <p className="tag text-paper/55">{note}</p>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="mx-auto max-w-[1300px] px-[var(--pad)] py-[clamp(32px,6vw,72px)]">
+          <h2 className="display text-[clamp(40px,6vw,76px)]">Four things it does</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map(({ icon: Icon, title, hindi, text }) => (
+              <article key={title} className="plate flex flex-col p-4">
+                <Icon className="h-8 w-8" strokeWidth={1.75} />
+                <h3 className="mt-4 text-[22px] font-bold leading-tight">{title}</h3>
+                <p className="deva text-[15px] font-semibold text-mute">{hindi}</p>
+                <p className="mt-3 text-[15.5px] leading-snug">{text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-y-2 border-ink bg-card">
+          <div className="mx-auto max-w-[1300px] px-[var(--pad)] py-[clamp(32px,6vw,72px)]">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="display text-[clamp(40px,6vw,76px)]">How it works</h2>
+              <Link to="/app?view=lab" className="link text-[16px]">
+                See the models, metrics and algorithms
               </Link>
-              {enabled && !user && (
-                <Link
-                  to="/signup"
-                  className="flex items-center gap-2 rounded-full border border-white/20 px-6 py-3.5 text-white/80 transition-colors hover:border-white/50 hover:text-white"
-                >
-                  <UserPlus className="h-4 w-4" /> Create an account
-                </Link>
-              )}
             </div>
+            <ol className="mt-6 grid gap-x-6 gap-y-5 md:grid-cols-2 lg:grid-cols-4">
+              {STEPS.map(([n, title, text]) => (
+                <li key={n} className="border-t-[6px] border-ink pt-3">
+                  <p className="num text-[13px] font-semibold text-mute">{n}</p>
+                  <h3 className="display mt-1 text-[30px]">{title}</h3>
+                  <p className="mt-2 text-[15.5px] leading-snug">{text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-[1300px] px-[var(--pad)] py-[clamp(32px,6vw,64px)]">
+          <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
+            <h2 className="display text-[clamp(34px,5vw,60px)]">What to know before you rely on it</h2>
+            <ul className="space-y-3 text-[16.5px] leading-snug">
+              <li className="border-l-[6px] border-signal pl-3">
+                The accuracy figures are measured on held-out data from the same datasets. A new signer, camera or room
+                will score lower, so check the sentence on screen before you speak it.
+              </li>
+              <li className="border-l-[6px] border-signal pl-3">
+                The vocabulary is {numbers?.words ?? 70} words plus letters and digits. Anything else is spelled or tapped from the
+                suggestions.
+              </li>
+              <li className="border-l-[6px] border-signal pl-3">
+                SOS shows an alert and your location on this screen. It does not send SMS or call anyone by itself.
+              </li>
+            </ul>
           </div>
         </section>
       </main>
 
-      <footer className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-12 text-sm text-white/45 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3 text-white">
-          <SanketMark className="h-5 w-5" />
-          <Wordmark className="text-xl" />
-          <span className="font-deva text-white/40">संकेत</span>
+      <footer className="border-t-2 border-ink">
+        <div className="mx-auto flex max-w-[1300px] flex-wrap items-center justify-between gap-3 px-[var(--pad)] py-5 text-[14px] text-mute">
+          <p>Sanket · Deep Learning course project (CSAI3027P), UPES</p>
+          <p>
+            Word data: INCLUDE, AI4Bharat (CC BY 4.0) · Hand tracking: MediaPipe · Models: TensorFlow / TensorFlow.js
+          </p>
         </div>
-        <p>A Deep Learning course project · UPES · CSAI3027P</p>
-        <nav className="flex gap-5" aria-label="Footer">
-          <Link to="/app" className="hover:text-white">Dashboard</Link>
-          <Link to="/app?view=learn" className="hover:text-white">Learn</Link>
-          {enabled && <Link to={user ? '/account' : '/login'} className="hover:text-white">{user ? 'Account' : 'Log in'}</Link>}
-        </nav>
       </footer>
     </div>
   );

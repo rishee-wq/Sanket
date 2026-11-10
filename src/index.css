@@ -1,57 +1,61 @@
 @import "tailwindcss";
 
+/*
+ * Sanket design system: "station board".
+ * Indian railway name boards are black type on signal yellow, in two scripts,
+ * built to be read at a glance from a moving train. The app borrows that:
+ * paper and ink, one loud yellow, hard 2px rules, condensed capitals for
+ * anything that must be read fast, and no blur, glow or gradients.
+ */
 @theme {
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-serif: "Instrument Serif", "Times New Roman", serif;
-  --font-deva: "Noto Serif Devanagari", "Instrument Serif", serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Anek Latin", "Segoe UI", system-ui, sans-serif;
+  --font-deva: "Anek Devanagari", "Nirmala UI", "Anek Latin", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
 
-  /* Sanket palette: black, warm ink, saffron signal, periwinkle light */
-  --color-ink: #f4f2ef;
-  --color-dim: #8c8783;
-  --color-saffron: #ff9a3c;
-  --color-saffron-deep: #f2701c;
-  --color-glow: #ffd2a8;
-  --color-periwinkle: #b4c0ff;
+  --color-paper: #f3eee2;
+  --color-card: #fffcf4;
+  --color-ink: #17140f;
+  --color-mute: #6c6557;
+  --color-signal: #ffc400;
+  --color-signal-deep: #e0a800;
+  --color-rail: #1b3fb5;
+  --color-alarm: #d42a17;
+  --color-go: #0a7a44;
+  --color-night: #100f0c;
 
-  --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1);
 }
 
 :root {
-  --pad: clamp(14px, 2.6vw, 34px);
+  --pad: clamp(14px, 2.4vw, 28px);
   --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html {
-  background: #000;
-  scrollbar-gutter: stable;
+  background: var(--color-paper);
 }
 
 body {
   margin: 0;
-  background: #000;
+  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  font-variation-settings: "wdth" 100;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-body.locked {
-  overflow: hidden;
-}
-
 ::selection {
-  background: rgb(255 154 60 / 0.3);
-  color: #fff;
+  background: var(--color-signal);
+  color: var(--color-ink);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-saffron);
+  outline: 3px solid var(--color-rail);
   outline-offset: 2px;
 }
 
@@ -61,94 +65,276 @@ a {
   touch-action: manipulation;
 }
 
-@keyframes riseIn {
-  from {
-    opacity: 0;
-    transform: translateY(9px);
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@layer components {
+  /* Condensed capitals: headlines and anything read at a glance. */
+  .display {
+    font-family: var(--font-sans);
+    font-variation-settings: "wdth" 76;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.005em;
+    line-height: 0.92;
   }
-  to {
-    opacity: 1;
-    transform: none;
+
+  /* Small mono caps: section labels, units, telemetry. */
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .deva {
+    font-family: var(--font-deva);
+    font-variation-settings: "wdth" 90;
+  }
+
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Surfaces */
+  .plate {
+    background: var(--color-card);
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+  }
+
+  .board {
+    background: var(--color-signal);
+    color: var(--color-ink);
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+  }
+
+  .slab {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+  }
+
+  /* Buttons: flat, squared, a 2px press instead of a hover glow. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+    background: var(--color-card);
+    color: var(--color-ink);
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1;
+    white-space: nowrap;
+    transition: transform 90ms var(--ease-snap), background-color 90ms linear;
+  }
+
+  .btn:hover:not(:disabled) {
+    background: #fff;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(2px);
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+  }
+
+  .btn-ink {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  .btn-ink:hover:not(:disabled) {
+    background: #2b2720;
+  }
+
+  .btn-signal {
+    background: var(--color-signal);
+  }
+
+  .btn-signal:hover:not(:disabled) {
+    background: #ffd23d;
+  }
+
+  .btn-alarm {
+    background: var(--color-alarm);
+    border-color: var(--color-alarm);
+    color: #fff;
+  }
+
+  .btn-alarm:hover:not(:disabled) {
+    background: #b92110;
+  }
+
+  .btn-bare {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .btn-bare:hover:not(:disabled) {
+    background: rgb(23 20 15 / 0.07);
+  }
+
+  .btn-sm {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 13.5px;
+  }
+
+  .btn-icon {
+    width: 44px;
+    padding: 0;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 9px;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .field {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 13px;
+    border: 2px solid var(--color-ink);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--color-ink);
+    font-size: 16px;
+    outline: none;
+  }
+
+  .field::placeholder {
+    color: rgb(23 20 15 / 0.38);
+  }
+
+  .field:focus {
+    box-shadow: 0 0 0 3px var(--color-signal);
+  }
+
+  .field:disabled {
+    opacity: 0.5;
+  }
+
+  .field[aria-invalid="true"] {
+    border-color: var(--color-alarm);
+  }
+
+  /* Ticket-paper dot grid for large empty areas. */
+  .dots {
+    background-image: radial-gradient(rgb(23 20 15 / 0.16) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+  }
+
+  /* Diagonal hazard stripes: SOS and warnings. */
+  .hazard {
+    background-image: repeating-linear-gradient(-45deg, var(--color-ink) 0 10px, var(--color-signal) 10px 20px);
+  }
+
+  .link {
+    color: var(--color-rail);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+
+  .link:hover {
+    color: var(--color-ink);
   }
 }
 
-@keyframes sweep {
-  0% {
-    transform: translateX(-100%);
+/* A token dropping into the sentence: one quick flap, never a delay. */
+@keyframes flap {
+  from {
+    transform: perspective(300px) rotateX(-72deg);
+    opacity: 0;
   }
-  55% {
-    transform: translateX(0);
+  to {
+    transform: none;
+    opacity: 1;
   }
-  100% {
-    transform: translateX(100%);
+}
+
+.flap {
+  transform-origin: 50% 0;
+  animation: flap 140ms var(--ease-snap) both;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
   }
+}
+
+.caret {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes pulse-dot {
+  50% {
+    transform: scale(0.55);
+    opacity: 0.5;
+  }
+}
+
+.live-dot {
+  animation: pulse-dot 1.1s ease-in-out infinite;
+}
+
+@keyframes march {
+  to {
+    background-position: 28.28px 0;
+  }
+}
+
+.hazard-live {
+  animation: march 0.7s linear infinite;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.14s !important;
-    scroll-behavior: auto !important;
+  .flap,
+  .caret,
+  .live-dot,
+  .hazard-live {
+    animation: none;
   }
-}
 
-/* App surfaces: deep warm black, hairline border, a whisper of top light. */
-.surface {
-  position: relative;
-  background: linear-gradient(180deg, #100f0e 0%, #0a0908 100%);
-  border: 1px solid rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 30px 80px -50px rgb(0 0 0 / 0.9);
-}
-.surface-glass {
-  background: rgb(10 9 8 / 0.55);
-  border: 1px solid rgb(255 255 255 / 0.1);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-}
-.dot-grid {
-  background-image: radial-gradient(circle at 1px 1px, rgb(244 242 239 / 0.06) 1px, transparent 1.2px);
-  background-size: 18px 18px;
-}
-.thin-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.12) transparent;
-}
-
-@keyframes live-ping {
-  0% {
-    box-shadow: 0 0 0 0 rgb(255 154 60 / 0.6);
+  .btn {
+    transition: none;
   }
-  100% {
-    box-shadow: 0 0 0 7px rgb(255 154 60 / 0);
-  }
-}
-.live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-saffron);
-  box-shadow: 0 0 10px var(--color-saffron);
-}
-.live-dot.on {
-  animation: live-ping 1.6s ease-out infinite;
-}
-
-/* Text with a light sweep across it */
-@keyframes shine {
-  from {
-    background-position: 150% 0;
-  }
-  to {
-    background-position: -50% 0;
-  }
-}
-.shiny-text {
-  color: transparent;
-  background: linear-gradient(100deg, var(--color-glow) 35%, #fff 50%, var(--color-glow) 65%) 0 0 / 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: shine 3.2s linear infinite;
 }

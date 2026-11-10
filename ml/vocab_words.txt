@@ -1,0 +1,79 @@
+# INCLUDE words used for the dynamic (word-level) model.
+# Chosen for the app's settings: hospital, public counter, emergency, home.
+# Greetings
+hello
+how are you
+thank you
+good morning
+good afternoon
+good evening
+good night
+alright
+pleased
+# Pronouns
+i
+you
+he
+she
+it
+we
+they
+# People
+mother
+father
+brother
+sister
+friend
+family
+child
+baby
+husband
+wife
+# Health and emergency
+doctor
+patient
+hospital
+medicine
+sick
+healthy
+police
+attack
+death
+money
+# Describing
+good
+bad
+hot
+cold
+happy
+fast
+slow
+loud
+quiet
+old
+new
+young
+# Time
+today
+tomorrow
+yesterday
+morning
+night
+time
+# Places and things
+house
+school
+bank
+office
+market
+bathroom
+bed
+door
+telephone
+key
+bus
+car
+train
+cell phone
+teacher
+student

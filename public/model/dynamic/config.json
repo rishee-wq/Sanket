@@ -1,0 +1,13 @@
+{
+  "type": "dynamic",
+  "frameSize": 136,
+  "sequenceLength": 32,
+  "numHands": 2,
+  "inputShape": [
+    32,
+    136
+  ],
+  "temperature": 0.8420485409890828,
+  "background": "_background",
+  "version": 2
+}

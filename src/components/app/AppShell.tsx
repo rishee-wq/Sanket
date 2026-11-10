@@ -1,191 +1,124 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
-import { ChevronDown, Volume2, VolumeX } from 'lucide-react';
+import React from 'react';
+import { FlaskConical, GraduationCap, Languages, Siren, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
-import type { PredictorKind } from '../../lib/predictor';
+import type { EngineStatus, ModelBundle } from '../../hooks/useSignEngine';
 import { Link } from '../../lib/router';
 import { SanketMark, Wordmark } from '../Logo';
 
-export type AppView = 'home' | 'converse' | 'learn' | 'sos';
+export type AppView = 'translate' | 'learn' | 'lab' | 'sos';
 
-const NAV: { view: AppView; label: string }[] = [
-  { view: 'home', label: 'Home' },
-  { view: 'converse', label: 'Converse' },
-  { view: 'learn', label: 'Learn' },
-  { view: 'sos', label: 'SOS' },
+const NAV: { view: AppView; label: string; hindi: string; icon: React.FC<{ className?: string }> }[] = [
+  { view: 'translate', label: 'Translate', hindi: 'अनुवाद', icon: Languages },
+  { view: 'learn', label: 'Learn', hindi: 'सीखें', icon: GraduationCap },
+  { view: 'lab', label: 'Model lab', hindi: 'प्रयोगशाला', icon: FlaskConical },
 ];
 
 interface ShellProps {
   view: AppView;
   onView: (v: AppView) => void;
-  predictorKind: PredictorKind;
-  activeKind: PredictorKind | null;
-  fallbackReason: string | null;
-  onPredictorKind: (k: PredictorKind) => void;
+  status: EngineStatus;
+  bundle: ModelBundle | null;
   soundOn: boolean;
   onToggleSound: () => void;
   children: React.ReactNode;
 }
 
-/** Segmented pill nav with a sliding highlight. */
-const PillNav: React.FC<{ view: AppView; onView: (v: AppView) => void; id: string }> = ({ view, onView, id }) => (
-  <nav className="surface-glass flex items-center rounded-full p-1" aria-label="App sections">
-    {NAV.map(({ view: v, label }) => {
-      const active = v === view;
-      const sos = v === 'sos';
-      return (
-        <button
-          key={v}
-          onClick={() => onView(v)}
-          aria-current={active ? 'page' : undefined}
-          className={`relative rounded-full px-4 py-2 text-sm font-medium transition-colors sm:px-5 ${
-            active ? (sos ? 'text-white' : 'text-black') : sos ? 'text-rose-300/90 hover:text-rose-200' : 'text-white/60 hover:text-white'
-          }`}
-        >
-          {active && (
-            <motion.span
-              layoutId={`pill-${id}`}
-              className={`absolute inset-0 rounded-full ${sos ? 'bg-rose-500' : 'bg-white'}`}
-              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            />
-          )}
-          <span className="relative">{label}</span>
-        </button>
-      );
-    })}
-  </nav>
-);
-
-/** Which recognizer is running, with a small menu to switch. */
-const EngineChip: React.FC<Pick<ShellProps, 'predictorKind' | 'activeKind' | 'fallbackReason' | 'onPredictorKind'>> = ({
-  predictorKind,
-  activeKind,
-  fallbackReason,
-  onPredictorKind,
-}) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    document.addEventListener('pointerdown', close);
-    return () => document.removeEventListener('pointerdown', close);
-  }, [open]);
-
-  const label = activeKind === null ? 'Loading model' : activeKind === 'tfjs' ? 'Trained model' : 'Demo model';
-  const options: { kind: PredictorKind; title: string; text: string }[] = [
-    {
-      kind: 'tfjs',
-      title: 'Trained model',
-      text: fallbackReason ? 'Not available yet: no model in public/model' : 'TensorFlow.js network from public/model',
-    },
-    { kind: 'mock', title: 'Demo model', text: 'Rule-based shapes; confidence is simulated' },
-  ];
-
+/** One line saying which models are running. */
+const ModelChip: React.FC<Pick<ShellProps, 'status' | 'bundle'>> = ({ status, bundle }) => {
+  if (status === 'loading') return <span className="chip bg-card">Loading models…</span>;
+  if (status === 'error' || !bundle)
+    return (
+      <span className="chip border-alarm bg-alarm text-white" title={bundle?.problems.join('\n')}>
+        No model found
+      </span>
+    );
+  const parts = [
+    bundle.staticModel && `${bundle.staticModel.classes - (bundle.staticModel.backgroundIndex >= 0 ? 1 : 0)} letters`,
+    bundle.dynamicModel && `${bundle.dynamicModel.classes - 1} words`,
+  ].filter(Boolean);
   return (
-    <div ref={ref} className="relative hidden lg:block">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="surface-glass flex items-center gap-2 rounded-full px-3.5 py-2 text-xs text-white/70 hover:text-white"
-      >
-        <span className={`live-dot ${activeKind ? 'on' : 'opacity-40'}`} />
-        {label}
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="surface-glass absolute right-0 top-full mt-2 w-72 rounded-2xl p-1.5"
-        >
-          {options.map((o) => (
-            <button
-              key={o.kind}
-              onClick={() => {
-                onPredictorKind(o.kind);
-                setOpen(false);
-              }}
-              className={`w-full rounded-xl px-3.5 py-2.5 text-left transition-colors hover:bg-white/[.06] ${
-                predictorKind === o.kind ? 'bg-white/[.06]' : ''
-              }`}
-            >
-              <span className="block text-sm text-white">{o.title}</span>
-              <span className="block text-xs text-white/45">{o.text}</span>
-            </button>
-          ))}
-        </motion.div>
-      )}
-    </div>
+    <span className="chip bg-card" title={[`Backend: ${bundle.backend}`, ...bundle.problems].join('\n')}>
+      <span className="h-2 w-2 bg-go" /> {parts.join(' + ')} · {bundle.backend}
+    </span>
   );
 };
 
-export const AppShell: React.FC<ShellProps> = ({ view, onView, soundOn, onToggleSound, children, ...engine }) => {
+export const AppShell: React.FC<ShellProps> = ({ view, onView, status, bundle, soundOn, onToggleSound, children }) => {
   const { user, profile, enabled } = useAuth();
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 8);
-    on();
-    window.addEventListener('scroll', on, { passive: true });
-    return () => window.removeEventListener('scroll', on);
-  }, []);
-  const initials = (profile?.full_name || user?.email || '?')
-    .split(/[\s@]/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join('');
+  const account = user ? '/account' : '/login?next=/app';
 
   return (
-    <div className="min-h-dvh bg-black text-ink">
-      <header
-        className={`fixed inset-x-0 top-0 z-50 transition-[background,border-color] duration-500 ${
-          scrolled ? 'border-b border-white/[.06] bg-black/70 backdrop-blur-xl' : 'border-b border-transparent'
-        }`}
-      >
-        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-2.5 text-white" aria-label="Sanket home">
-            <SanketMark className="h-6 w-6" />
-            <Wordmark className="text-[22px]" />
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-40 border-b-2 border-ink bg-paper pt-[var(--safe-top)]">
+        <div className="mx-auto flex h-14 max-w-[1500px] items-center gap-3 px-[var(--pad)]">
+          <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="Sanket home">
+            <SanketMark className="h-8 w-8" />
+            <Wordmark className="hidden text-[26px] sm:inline-flex" />
           </Link>
 
-          <div className="absolute left-1/2 hidden -translate-x-1/2 md:block">
-            <PillNav view={view} onView={onView} id="top" />
-          </div>
+          <nav className="ml-2 hidden h-full items-stretch md:flex" aria-label="App sections">
+            {NAV.map(({ view: v, label, icon: Icon }) => (
+              <button
+                key={v}
+                onClick={() => onView(v)}
+                aria-current={v === view ? 'page' : undefined}
+                className={`relative flex items-center gap-2 px-4 text-[15px] font-semibold ${
+                  v === view ? 'text-ink' : 'text-mute hover:text-ink'
+                }`}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+                {label}
+                {v === view && <span className="absolute inset-x-3 -bottom-[2px] h-[6px] bg-signal ring-2 ring-ink" />}
+              </button>
+            ))}
+          </nav>
 
-          <div className="flex items-center gap-2">
-            <EngineChip {...engine} />
-            <button
-              onClick={onToggleSound}
-              aria-label={soundOn ? 'Mute sound cues' : 'Turn on sound cues'}
-              className="surface-glass grid h-9 w-9 place-items-center rounded-full text-white/70 hover:text-white"
-            >
-              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-white/40" />}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden lg:block">
+              <ModelChip status={status} bundle={bundle} />
+            </span>
+            <button className="btn btn-bare btn-icon" onClick={onToggleSound} aria-label={soundOn ? 'Mute sounds' : 'Unmute sounds'} aria-pressed={!soundOn}>
+              {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
             </button>
-            {enabled &&
-              (user ? (
-                <Link
-                  to="/account"
-                  aria-label="Your account"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-saffron to-saffron-deep text-xs font-semibold text-black"
-                >
-                  {initials}
-                </Link>
-              ) : (
-                <Link to="/login?next=/app" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black">
-                  Log in
-                </Link>
-              ))}
+            {enabled && (
+              <Link to={account} className="btn btn-bare btn-icon" aria-label={user ? `Account: ${profile?.full_name ?? user.email}` : 'Log in'}>
+                <UserRound className="h-5 w-5" />
+              </Link>
+            )}
+            <button
+              onClick={() => onView('sos')}
+              aria-current={view === 'sos' ? 'page' : undefined}
+              className={`btn btn-alarm ${view === 'sos' ? 'ring-2 ring-ink ring-offset-2 ring-offset-paper' : ''}`}
+            >
+              <Siren className="h-[18px] w-[18px]" /> SOS
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile dock */}
-      <div className="fixed inset-x-0 bottom-[calc(14px+var(--safe-bottom))] z-50 flex justify-center md:hidden">
-        <PillNav view={view} onView={onView} id="dock" />
-      </div>
+      <main className="mx-auto w-full max-w-[1500px] flex-1 px-[var(--pad)] pb-[calc(76px+var(--safe-bottom))] pt-[var(--pad)] md:pb-[var(--pad)]">
+        {children}
+      </main>
 
-      <main className="pb-28 pt-[72px] md:pb-10">{children}</main>
+      {/* Phones: the sections move to a bottom bar within thumb reach. */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t-2 border-ink bg-paper pb-[var(--safe-bottom)] md:hidden"
+        aria-label="App sections"
+      >
+        {NAV.map(({ view: v, label, icon: Icon }) => (
+          <button
+            key={v}
+            onClick={() => onView(v)}
+            aria-current={v === view ? 'page' : undefined}
+            className={`flex h-[60px] flex-col items-center justify-center gap-0.5 text-[12px] font-semibold ${
+              v === view ? 'bg-signal text-ink' : 'text-mute'
+            }`}
+          >
+            <Icon className="h-5 w-5" />
+            {label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 };

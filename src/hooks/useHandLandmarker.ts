@@ -3,7 +3,7 @@ import { HandLandmarker } from '@mediapipe/tasks-vision';
 import wasmLoaderPath from '@mediapipe/tasks-vision/vision_wasm_internal.js?url';
 import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_internal.wasm?url';
 import { useCallback, useEffect, useState } from 'react';
-import type { DetectedHand } from '../types/isl';
+import type { DetectedHand } from '../engine/features';
 
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';

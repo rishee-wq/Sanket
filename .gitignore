@@ -9,3 +9,11 @@ coverage/
 # Too large for GitHub (>100 MB)
 dataset/American Hand Signs Dataset.zip
 !.env.example
+
+# Python training (ml/)
+ml/.venv/
+ml/models/
+ml/data/
+__pycache__/
+
+ml/runs/

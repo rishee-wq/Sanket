@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { Check, Copy, MapPin, Phone, RefreshCw, Share2, Volume2, VolumeX, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEmergencyContacts } from '../../auth/useEmergencyContacts';
@@ -17,7 +16,6 @@ interface Fix {
 
 const COUNTDOWN = 5;
 const HOLD_MS = 1500;
-const EASE = [0.22, 0.61, 0.36, 1] as const;
 
 function useLocation() {
   const [fix, setFix] = useState<Fix | null>(null);
@@ -144,101 +142,92 @@ export const SosView: React.FC<{ triggered: boolean; onExit: () => void }> = ({ 
     copy();
   };
 
-  const R = 128;
-  const C = 2 * Math.PI * R;
-
   return (
-    <div className="mx-auto max-w-[1200px] px-5 pt-4 sm:px-8">
-      {/* Idle */}
-      <div className="grid items-center gap-10 py-6 lg:grid-cols-[1fr_auto]">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[.24em] text-rose-300">Emergency</p>
-          <h1 className="mt-3 font-serif text-6xl leading-[0.95] sm:text-7xl">
-            Need help <em className="text-rose-200">fast?</em>
+    <div className="mx-auto max-w-[1100px]">
+      <div className="grid items-stretch gap-[var(--pad)] lg:grid-cols-[1fr_minmax(300px,420px)]">
+        <div className="flex flex-col justify-center py-2">
+          <p className="tag text-alarm">Emergency · आपातकाल</p>
+          <h1 className="display mt-3 text-[clamp(56px,10vw,128px)]">
+            Need help
+            <br />
+            fast?
           </h1>
-          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/55">
-            Press and hold the button, or make the Signal for Help in Converse: palm out with your thumb folded across it, then close your fingers over the thumb.
-            You get five seconds to cancel before the alert shows.
+          <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed">
+            Press and hold the red button. Or, in Translate, make the Signal for Help: palm out with your thumb folded
+            across it, then close your fingers over the thumb. You get {COUNTDOWN} seconds to cancel before the alert
+            shows.
           </p>
         </div>
 
-        <div className="mx-auto">
-          <button
-            onPointerDown={startHold}
-            onPointerUp={endHold}
-            onPointerLeave={endHold}
-            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !e.repeat && startHold()}
-            onKeyUp={endHold}
-            aria-label="Press and hold to send an SOS alert"
-            className="group relative grid h-[280px] w-[280px] select-none place-items-center rounded-full"
-          >
-            <svg viewBox="0 0 280 280" className="absolute inset-0 -rotate-90" aria-hidden="true">
-              <circle cx="140" cy="140" r={R} fill="none" stroke="rgba(251,113,133,.15)" strokeWidth="4" />
-              <circle cx="140" cy="140" r={R} fill="none" stroke="#fb7185" strokeWidth="4" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - hold)} />
-            </svg>
-            <motion.span
-              className="absolute inset-[26px] rounded-full bg-[radial-gradient(circle_at_35%_30%,#fb7185,#be123c_55%,#4c0519)] shadow-[0_0_80px_-10px_rgba(244,63,94,.6)]"
-              animate={{ scale: hold ? 0.94 : [1, 1.03, 1] }}
-              transition={hold ? { duration: 0.2 } : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <span className="relative text-center text-white">
-              <span className="block font-serif text-5xl">SOS</span>
-              <span className="mt-1 block text-xs uppercase tracking-[.2em] text-white/80">{hold ? 'Keep holding' : 'Press & hold'}</span>
+        {/* The hold button fills with hazard stripes from the bottom as you hold. */}
+        <button
+          onPointerDown={startHold}
+          onPointerUp={endHold}
+          onPointerLeave={endHold}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !e.repeat && startHold()}
+          onKeyUp={endHold}
+          aria-label="Press and hold to send an SOS alert"
+          className="relative min-h-[260px] select-none overflow-hidden rounded-md border-2 border-ink bg-alarm text-white"
+        >
+          <span aria-hidden="true" className="hazard hazard-live absolute inset-x-0 bottom-0" style={{ height: `${hold * 100}%` }} />
+          <span className="relative block p-6">
+            <span className="display block text-[clamp(88px,14vw,150px)]" style={{ textShadow: hold ? '0 0 0 #17140f, 3px 3px 0 #17140f' : undefined }}>
+              SOS
             </span>
-          </button>
-        </div>
+            <span className="tag mt-2 inline-block border-2 border-white bg-ink px-2 py-1 text-white">{hold ? 'Keep holding…' : 'Press and hold 1.5 s'}</span>
+          </span>
+        </button>
       </div>
 
-      {/* Details */}
-      <div className="grid gap-4 pb-6 md:grid-cols-3">
-        <section className="surface rounded-[24px] p-6">
+      <div className="mt-[var(--pad)] grid gap-3 md:grid-cols-3">
+        <section className="plate p-4">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-[.24em] text-white/40">Your location</p>
-            <button onClick={location.refresh} aria-label="Refresh location" className="text-white/40 hover:text-white">
+            <p className="tag text-mute">Your location</p>
+            <button onClick={location.refresh} aria-label="Refresh location" className="btn btn-bare btn-sm btn-icon !w-[34px]">
               <RefreshCw className={`h-4 w-4 ${location.busy ? 'animate-spin' : ''}`} />
             </button>
           </div>
           {location.fix ? (
             <>
-              <p className="mt-4 font-mono text-lg text-white">
+              <p className="num mt-3 text-lg font-semibold">
                 {location.fix.lat.toFixed(5)}, {location.fix.lng.toFixed(5)}
               </p>
-              <p className="text-xs text-white/40">within about {location.fix.accuracy} m</p>
-              <a href={location.fix.url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm text-saffron hover:text-glow">
+              <p className="text-sm text-mute">within about {location.fix.accuracy} m</p>
+              <a href={location.fix.url} target="_blank" rel="noreferrer" className="link mt-3 inline-flex items-center gap-1.5 text-[15px]">
                 <MapPin className="h-4 w-4" /> Open in Maps
               </a>
             </>
           ) : (
-            <p className="mt-4 text-sm text-white/50">{location.error ?? 'Finding you…'}</p>
+            <p className="mt-3 text-[15px] text-mute">{location.error ?? 'Finding you…'}</p>
           )}
         </section>
 
-        <section className="surface rounded-[24px] p-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[.24em] text-white/40">Emergency contacts</p>
+        <section className="plate p-4">
+          <p className="tag text-mute">Emergency contacts</p>
           {contacts.length ? (
-            <ul className="mt-3 space-y-1">
+            <ul className="mt-2">
               {contacts.map((c) => (
-                <li key={c.id}>
-                  <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-white/[.04]">
-                    <span className="text-sm text-white/85">
+                <li key={c.id} className="border-b border-ink/15 last:border-0">
+                  <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="flex items-center justify-between gap-2 py-2 hover:bg-ink/5">
+                    <span className="text-[15px] font-semibold">
                       {c.name}
-                      {c.relation && <span className="text-white/40"> · {c.relation}</span>}
+                      {c.relation && <span className="font-normal text-mute"> · {c.relation}</span>}
                     </span>
-                    <Phone className="h-4 w-4 text-saffron" />
+                    <Phone className="h-4 w-4" />
                   </a>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-white/50">
+            <p className="mt-3 text-[15px] text-mute">
               {enabled ? (
                 user ? (
                   <>
-                    None saved yet. <Link to="/account#contacts" className="text-saffron">Add contacts</Link>
+                    None saved yet. <Link to="/account#contacts" className="link">Add contacts</Link>
                   </>
                 ) : (
                   <>
-                    <Link to="/login?next=/app" className="text-saffron">Log in</Link> to keep contacts here.
+                    <Link to="/login?next=/app" className="link">Log in</Link> to keep contacts here.
                   </>
                 )
               ) : (
@@ -246,109 +235,91 @@ export const SosView: React.FC<{ triggered: boolean; onExit: () => void }> = ({ 
               )}
             </p>
           )}
-          <a href="tel:112" className="mt-4 flex items-center gap-2 text-sm font-medium text-rose-300">
+          <a href="tel:112" className="btn btn-alarm btn-sm mt-3">
             <Phone className="h-4 w-4" /> India emergency: 112
           </a>
         </section>
 
-        <section className="surface rounded-[24px] p-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[.24em] text-white/40">Message</p>
-          <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-white/70">{message(location.fix)}</p>
-          <div className="mt-4 flex gap-2">
-            <button onClick={copy} className="flex items-center gap-1.5 rounded-full border border-white/12 px-3.5 py-2 text-xs text-white/80 hover:border-white/30">
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Copied' : 'Copy'}
+        <section className="plate p-4">
+          <p className="tag text-mute">Message</p>
+          <p className="mt-3 whitespace-pre-line text-[14px] leading-relaxed">{message(location.fix)}</p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={copy} className="btn btn-sm">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? 'Copied' : 'Copy'}
             </button>
-            <button onClick={share} className="flex items-center gap-1.5 rounded-full border border-white/12 px-3.5 py-2 text-xs text-white/80 hover:border-white/30">
-              <Share2 className="h-3.5 w-3.5" /> Share
+            <button onClick={share} className="btn btn-sm">
+              <Share2 className="h-4 w-4" /> Share
             </button>
           </div>
-          <p className="mt-3 text-[11px] text-white/30">Sending SMS automatically isn't built yet.</p>
+          <p className="mt-3 text-[12px] text-mute">Sending SMS automatically isn't built yet.</p>
         </section>
       </div>
 
       {/* Countdown and active alert take over the screen */}
-      <AnimatePresence>
-        {phase === 'countdown' && (
-          <motion.div
-            key="countdown"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] grid place-items-center bg-[radial-gradient(circle_at_center,#4c0519,#0a0004_70%)] p-6 text-center"
-            role="alertdialog"
-            aria-label="SOS countdown"
-          >
+      {phase === 'countdown' && (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-ink text-paper" role="alertdialog" aria-label="SOS countdown">
+          <div className="hazard hazard-live h-5 shrink-0" aria-hidden="true" />
+          <div className="grid flex-1 place-items-center p-6 text-center">
             <div>
-              <p className="text-xs uppercase tracking-[.3em] text-rose-200/80">Alert in</p>
-              <AnimatePresence mode="popLayout">
-                <motion.p
-                  key={count}
-                  initial={{ opacity: 0, scale: 1.3, filter: 'blur(10px)' }}
-                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.45, ease: EASE }}
-                  className="font-serif text-[clamp(160px,32vw,320px)] leading-none text-white"
-                >
-                  {count}
-                </motion.p>
-              </AnimatePresence>
-              <button onClick={cancel} autoFocus className="mt-6 rounded-full bg-white px-10 py-4 text-lg font-semibold text-black">
+              <p className="tag text-signal">Alert in</p>
+              <p key={count} className="display flap text-[clamp(180px,38vw,380px)] text-signal">
+                {count}
+              </p>
+              <button onClick={cancel} autoFocus className="btn mt-4 !min-h-[60px] px-12 text-xl">
                 Cancel
               </button>
-              <p className="mt-3 text-xs text-white/40">or press Escape</p>
+              <p className="tag mt-3 text-paper/50">or press Escape</p>
             </div>
-          </motion.div>
-        )}
+          </div>
+          <div className="hazard hazard-live h-5 shrink-0" aria-hidden="true" />
+        </div>
+      )}
 
-        {phase === 'active' && (
-          <motion.div
-            key="active"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] overflow-y-auto bg-[#fff1f2] text-[#1a0306]"
-            role="alertdialog"
-            aria-label="Emergency alert"
-          >
-            <motion.div className="h-2 bg-rose-600" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }} />
-            <div className="mx-auto flex min-h-[calc(100dvh-8px)] max-w-3xl flex-col justify-center px-6 py-10">
-              <p className="text-sm font-semibold uppercase tracking-[.25em] text-rose-700">Emergency · please read</p>
-              <h2 className="mt-4 font-serif text-[clamp(48px,9vw,96px)] leading-[0.95]">I am deaf and I need help.</h2>
-              <p className="mt-6 text-2xl text-rose-950/80">Please call 112, or stay with me. I can read your words on this screen.</p>
-              {location.fix && <p className="mt-4 font-mono text-base text-rose-950/60">Location: {location.fix.lat.toFixed(5)}, {location.fix.lng.toFixed(5)}</p>}
+      {phase === 'active' && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-signal text-ink" role="alertdialog" aria-label="Emergency alert">
+          <div className="hazard hazard-live h-6" aria-hidden="true" />
+          <div className="mx-auto flex min-h-[calc(100dvh-24px)] max-w-4xl flex-col justify-center px-6 py-8">
+            <p className="tag">Emergency · please read</p>
+            <h2 className="display mt-3 text-[clamp(56px,11vw,132px)]">I am deaf and I need help.</h2>
+            <p className="deva mt-3 text-[clamp(22px,3.4vw,36px)] font-bold">मैं बधिर हूँ। मुझे मदद चाहिए।</p>
+            <p className="mt-5 max-w-[40ch] text-2xl font-medium">Please call 112, or stay with me. I can read your words on this screen.</p>
+            {location.fix && (
+              <p className="num mt-4 text-base">
+                Location: {location.fix.lat.toFixed(5)}, {location.fix.lng.toFixed(5)}
+              </p>
+            )}
 
-              <div className="mt-10 flex flex-wrap gap-3">
-                <a href="tel:112" className="flex items-center gap-2 rounded-full bg-rose-600 px-7 py-4 text-lg font-semibold text-white">
-                  <Phone className="h-5 w-5" /> Call 112
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="tel:112" className="btn btn-alarm !min-h-[60px] px-7 text-xl">
+                <Phone className="h-5 w-5" /> Call 112
+              </a>
+              {contacts.map((c) => (
+                <a key={c.id} href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="btn !min-h-[60px] px-6 text-xl">
+                  <Phone className="h-5 w-5" /> {c.name}
                 </a>
-                {contacts.map((c) => (
-                  <a key={c.id} href={`tel:${c.phone.replace(/[^+\d]/g, '')}`} className="flex items-center gap-2 rounded-full border-2 border-rose-950/15 px-6 py-4 text-lg font-medium">
-                    <Phone className="h-5 w-5" /> {c.name}
-                  </a>
-                ))}
-                <button onClick={share} className="flex items-center gap-2 rounded-full border-2 border-rose-950/15 px-6 py-4 text-lg font-medium">
-                  <Share2 className="h-5 w-5" /> Share location
-                </button>
-              </div>
-
-              <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-rose-950/10 pt-6">
-                <button onClick={() => setSiren((s) => !s)} className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-rose-950/70 hover:bg-rose-950/5">
-                  {siren ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />} {siren ? 'Silence siren' : 'Sound siren'}
-                </button>
-                <button
-                  onClick={() => {
-                    cancel();
-                    onExit();
-                  }}
-                  className="ml-auto flex items-center gap-2 rounded-full bg-[#1a0306] px-6 py-3 text-sm font-semibold text-white"
-                >
-                  <X className="h-4 w-4" /> I'm safe now
-                </button>
-              </div>
+              ))}
+              <button onClick={share} className="btn !min-h-[60px] px-6 text-xl">
+                <Share2 className="h-5 w-5" /> Share location
+              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3 border-t-2 border-ink pt-5">
+              <button onClick={() => setSiren((s) => !s)} className="btn btn-bare">
+                {siren ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />} {siren ? 'Silence siren' : 'Sound siren'}
+              </button>
+              <button
+                onClick={() => {
+                  cancel();
+                  onExit();
+                }}
+                className="btn btn-ink ml-auto"
+              >
+                <X className="h-5 w-5" /> I'm safe now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

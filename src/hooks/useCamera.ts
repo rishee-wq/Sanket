@@ -29,7 +29,8 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>) {
     releaseStream();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 480 } },
+        // 60 fps when the camera offers it: less motion blur and a newer frame every 16 ms.
+        video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } },
         audio: false,
       });
       const video = videoRef.current;
@@ -45,7 +46,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>) {
       if (id !== requestId.current) return;
       setError(
         err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Camera permission was denied. Allow camera access in your browser, or try the hand simulator.'
+          ? 'Camera permission was denied. Allow camera access in your browser, or play the demo stream.'
           : `Could not start the camera${err instanceof Error ? `: ${err.message}` : ''}.`
       );
       setIsActive(false);

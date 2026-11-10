@@ -1,0 +1,9 @@
+tensorflow==2.19.*
+tf-keras==2.19.*
+mediapipe
+opencv-python
+scikit-learn
+matplotlib
+pyarrow
+requests
+numpy

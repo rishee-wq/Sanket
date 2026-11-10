@@ -1,0 +1,11 @@
+{
+  "type": "static",
+  "frameSize": 132,
+  "numHands": 2,
+  "inputShape": [
+    132
+  ],
+  "temperature": 0.44569695987793684,
+  "background": "_none",
+  "version": 2
+}

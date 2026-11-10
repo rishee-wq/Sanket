@@ -52,14 +52,14 @@ export default function SignupPage() {
 
   if (sentTo) {
     return (
-      <AuthLayout title="Check your email" subtitle={<>We sent a confirmation link to <b className="text-white">{sentTo}</b>.</>}>
+      <AuthLayout title="Check your email" subtitle={<>We sent a confirmation link to <b className="text-ink">{sentTo}</b>.</>}>
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="space-y-5 rounded-2xl border border-white/10 bg-white/[.03] p-6"
+          className="plate space-y-5 p-6"
         >
-          <MailCheck className="h-8 w-8 text-saffron" />
-          <p className="text-[15px] leading-relaxed text-white/70">
+          <MailCheck className="h-8 w-8 text-rail" />
+          <p className="text-[15px] leading-relaxed text-ink">
             Open the link on this device to finish creating your account. It can take a minute to arrive; check your
             spam folder too.
           </p>
@@ -75,7 +75,7 @@ export default function SignupPage() {
                   setFormError(friendlyAuthError(err));
                 }
               }}
-              className="text-sm font-medium text-white underline underline-offset-4"
+              className="text-sm font-medium text-ink underline underline-offset-4"
             >
               Resend the link
             </button>
@@ -90,14 +90,14 @@ export default function SignupPage() {
     <AuthLayout
       title={
         <>
-          Create your <em className="text-glow">account.</em>
+          Create your <em className="not-italic underline decoration-signal decoration-[6px] underline-offset-[6px]">account.</em>
         </>
       }
       subtitle="Free. Keeps your emergency contacts and preferences in one place."
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-white underline-offset-4 hover:underline">
+          <Link to="/login" className="font-medium text-ink underline-offset-4 hover:underline">
             Log in
           </Link>
         </>
@@ -146,8 +146,8 @@ export default function SignupPage() {
         />
 
         <fieldset disabled={!enabled}>
-          <legend className="mb-2 text-sm font-medium text-white/85">
-            I am <span className="font-normal text-white/40">(optional)</span>
+          <legend className="mb-2 text-sm font-medium text-ink">
+            I am <span className="font-normal text-mute">(optional)</span>
           </legend>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(ROLE_LABELS) as NonNullable<Profile['role']>[]).map((key) => (
@@ -156,11 +156,7 @@ export default function SignupPage() {
                 type="button"
                 aria-pressed={role === key}
                 onClick={() => setRole(role === key ? null : key)}
-                className={`rounded-full border px-3.5 py-2 text-[13px] transition-colors ${
-                  role === key
-                    ? 'border-saffron bg-saffron/15 text-white'
-                    : 'border-white/12 text-white/65 hover:border-white/30 hover:text-white'
-                }`}
+                className={`btn btn-sm ${role === key ? 'btn-ink' : ''}`}
               >
                 {ROLE_LABELS[key]}
               </button>
@@ -171,7 +167,7 @@ export default function SignupPage() {
         <SubmitButton busy={busy} disabled={!enabled}>
           Create account
         </SubmitButton>
-        <p className="text-center text-xs leading-relaxed text-white/40">
+        <p className="text-center text-xs leading-relaxed text-mute">
           We store your name, email and emergency contacts. Camera video never leaves your device.
         </p>
       </form>

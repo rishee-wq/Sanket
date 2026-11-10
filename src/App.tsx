@@ -13,9 +13,9 @@ const AccountPage = lazy(() => import('./pages/AccountPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageFallback = () => (
-  <div className="min-h-dvh grid place-items-center bg-black" role="status" aria-label="Loading">
-    <div className="h-px w-40 overflow-hidden bg-white/15">
-      <div className="h-full w-full bg-ink animate-[sweep_1.6s_ease_infinite]" />
+  <div className="min-h-dvh grid place-items-center bg-paper" role="status" aria-label="Loading">
+    <div className="hazard hazard-live h-3 w-44 border-2 border-ink">
+      
     </div>
   </div>
 );

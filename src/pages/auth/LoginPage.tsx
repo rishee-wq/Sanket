@@ -57,14 +57,14 @@ export default function LoginPage() {
     <AuthLayout
       title={
         <>
-          Welcome <em className="text-glow">back.</em>
+          Welcome <em className="not-italic underline decoration-signal decoration-[6px] underline-offset-[6px]">back.</em>
         </>
       }
       subtitle="Log in to see your emergency contacts on the SOS screen and keep your settings in sync."
       footer={
         <>
           New to Sanket?{' '}
-          <Link to="/signup" className="font-medium text-white underline-offset-4 hover:underline">
+          <Link to="/signup" className="font-medium text-ink underline-offset-4 hover:underline">
             Create an account
           </Link>
         </>
@@ -99,7 +99,7 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           disabled={!enabled}
           trailing={
-            <Link to="/forgot-password" className="text-[13px] text-white/55 hover:text-white">
+            <Link to="/forgot-password" className="text-[13px] text-mute hover:text-ink">
               Forgot password?
             </Link>
           }
