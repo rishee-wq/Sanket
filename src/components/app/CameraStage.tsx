@@ -150,9 +150,11 @@ export const CameraStage: React.FC<StageProps> = ({ stage, demo, demoLabel = 'Pl
                 <button className="btn btn-signal" onClick={startCamera} disabled={landmarker.status === 'error'}>
                   <Camera className="h-[18px] w-[18px]" /> Start camera
                 </button>
-                <button className="btn border-paper bg-transparent text-paper hover:!bg-white/10" onClick={() => playDemo(demo)}>
-                  <Play className="h-[18px] w-[18px]" /> {demoLabel}
-                </button>
+                {demo.length > 0 && (
+                  <button className="btn border-paper bg-transparent text-paper hover:!bg-white/10" onClick={() => playDemo(demo)}>
+                    <Play className="h-[18px] w-[18px]" /> {demoLabel}
+                  </button>
+                )}
               </div>
               {landmarker.status === 'loading' && <p className="tag mt-4 text-paper/60">Loading hand tracker…</p>}
               {(camera.error || landmarker.error || replayError) && (

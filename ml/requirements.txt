@@ -7,3 +7,4 @@ matplotlib
 pyarrow
 requests
 numpy
+imageio-ffmpeg

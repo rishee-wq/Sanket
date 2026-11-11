@@ -35,11 +35,14 @@ def quantise(hands: np.ndarray, present: np.ndarray) -> np.ndarray:
 def main():
     items, chunks, offset = [], [], 0
 
-    def add(label, kind, hands, present, active, fps, aspect):
+    def add(label, kind, hands, present, active, fps, aspect, source=None):
         nonlocal offset
         chunks.append(quantise(hands, present))
-        items.append({"label": label, "kind": kind, "offset": offset, "frames": int(len(hands)),
-                      "active": [int(active[0]), int(active[1])], "fps": fps, "aspect": aspect})
+        item = {"label": label, "kind": kind, "offset": offset, "frames": int(len(hands)),
+                "active": [int(active[0]), int(active[1])], "fps": fps, "aspect": aspect}
+        if source:
+            item["source"] = source  # the INCLUDE video, so export_clips.py can cut the same recording
+        items.append(item)
         offset += len(hands)
 
     dyn_path = DATA / "include_landmarks.npz"
@@ -56,7 +59,7 @@ def main():
                 return (seg.sum(1) > 0).mean()
             v = max(candidates, key=coverage)
             sl = slice(int(d["start"][v]), int(d["start"][v] + d["length"][v]))
-            add(label, "word", d["hands"][sl], d["present"][sl], d["active"][v], 25, 16 / 9)
+            add(label, "word", d["hands"][sl], d["present"][sl], d["active"][v], 25, 16 / 9, str(d["paths"][v]))
 
     sta_path = DATA / "static_landmarks.npz"
     if sta_path.exists():

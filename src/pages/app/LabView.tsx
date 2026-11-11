@@ -512,6 +512,7 @@ const ALGORITHMS: [string, string, string][] = [
   ['Levenshtein (dynamic programming)', 'O(m × n), pruned', 'Corrects a misread letter'],
   ['Hash-map bigram model', 'O(1) update', 'Predicts the next word; learns from use'],
   ['LRU cache (map + linked list)', 'O(1) get / set', 'Memoises suggestion queries'],
+  ['Prototypical network (cosine similarity)', 'O(signs × 160)', 'Recognises signs you teach it from 3-5 examples'],
 ];
 
 export const LabView: React.FC<{ bundle: ModelBundle | null; engine: SignEngine | null; language: LanguageModel }> = ({

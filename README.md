@@ -9,7 +9,8 @@ University Deep Learning course project (UPES, CSAI3027P): a sign language recog
 ## What's in the app
 
 - **Translate** (`/app`): the camera with a live hand overlay, a "now reading" board with the top three candidates, and a sentence that builds as you sign. Three modes: Words (70 word signs), Letters (A-Z and 1-9 for spelling), and Auto. Suggestions complete the word you are spelling and predict the next word. Speak says the sentence aloud; Caption speech turns the other person's voice into text.
-- **Learn**: pick a sign, watch a real signer's hand movement (a recording from the test set), copy it on camera, and the model tells you when it reads it.
+- **Learn**: a course that goes words first, then sentences, then fingerspelling. Words are taught by a real signer on video (slow motion, mirror, key moments, and an overlay of what the model sees); letters by a solid hand you can turn in 3-D. Sentence lessons teach ISL word order and check each word as you sign it.
+- **My signs**: teach Sanket a new sign (your name sign, a local variant) from 3-5 recordings. It is recognised straight away, in Translate too, with no retraining: few-shot learning with a prototypical network. Recordings stay in your browser.
 - **Model lab**: the pipeline, test metrics, training curves, confusion matrix, architecture comparison, a t-SNE plot, a live speed benchmark, and interactive demos of the trie and edit-distance table.
 - **SOS**: press and hold (or make the Signal for Help on camera), get a 5-second countdown to cancel, then a full-screen "I am deaf and I need help" alert with Call 112, your location and your saved contacts. SMS is not sent automatically.
 - **Demo stream**: every camera view can replay recorded landmarks through the same engine, so the whole pipeline can be shown without a webcam.
@@ -58,7 +59,8 @@ pip install -r requirements.txt
 | 3. Letter images → landmarks (put the parquet in `data/raw/isl_static/`) | `python extract_static.py` | about 10 min |
 | 4. Train baselines | `python train_dynamic.py --model bilstm` (also `gru`, `mlp`), `python train_static.py --model mlp --aug 1.5` | about 25 min each for words |
 | 5. Train and export the shipped models | `python train_dynamic.py`, `python train_static.py --mixup 0 --aug 1.5` | 25 min, 8 min |
-| 6. Export the example recordings | `python export_exemplars.py` | 1 min |
+| 6. Export the example recordings and teacher videos | `python export_exemplars.py`, `python export_clips.py`, `python export_prototypes.py` | 5 min |
+| 6b. Few-shot experiment (optional) | `python eval_fewshot.py` | about 25 min |
 | 7. Check | `python check_parity.py`, `node check_tfjs.mjs static`, `node check_tfjs.mjs dynamic` | 1 min |
 
 Step 5 writes `public/model/static/` and `public/model/dynamic/`; reload the app and it uses them. Train the baselines first so the comparison table in the report includes them.

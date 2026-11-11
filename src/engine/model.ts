@@ -27,6 +27,12 @@ export class SignModel {
   readonly backgroundIndex: number;
   private readonly tf: typeof tfType;
   private readonly model: tfType.LayersModel;
+  private dual: tfType.LayersModel | null = null;
+  /**
+   * Mean unit embedding of every class (rows in label order), from prototypes.json.
+   * A taught sign must be closer than all of these to count (fewshot.ts).
+   */
+  builtin: Float32Array | null = null;
   readonly labels: readonly string[];
   readonly config: ModelConfig;
 
@@ -59,6 +65,37 @@ export class SignModel {
     const probs = (await output.data()) as Float32Array;
     output.dispose();
     return calibrate(probs, this.classes, this.config.temperature);
+  }
+
+  /**
+   * Like predict(), but also returns each input's embedding: the output of the
+   * layer named "embedding", just before the classifier, L2-normalised. Both come
+   * from one forward pass through a second model that shares the same weights.
+   * Used to compare a sign with the user's own taught signs (fewshot.ts).
+   */
+  async predictWithEmbedding(input: Float32Array, batch = 1): Promise<{ probs: Float32Array; embeddings: Float32Array; size: number }> {
+    const { tf } = this;
+    this.dual ??= tf.model({
+      inputs: this.model.inputs,
+      outputs: [this.model.outputs[0], this.model.getLayer('embedding').output as tfType.SymbolicTensor],
+    });
+    const dual = this.dual;
+    const [p, e] = tf.tidy(() => {
+      const x = tf.tensor(input.subarray(0, batch * this.inputSize), [batch, ...this.config.inputShape]);
+      return dual.predict(x) as tfType.Tensor[];
+    });
+    const [probs, raw] = (await Promise.all([p.data(), e.data()])) as [Float32Array, Float32Array];
+    p.dispose();
+    e.dispose();
+    const size = raw.length / batch;
+    const embeddings = new Float32Array(raw.length);
+    for (let r = 0; r < batch; r++) {
+      let n = 0;
+      for (let i = 0; i < size; i++) n += raw[r * size + i] ** 2;
+      n = Math.sqrt(n) || 1;
+      for (let i = 0; i < size; i++) embeddings[r * size + i] = raw[r * size + i] / n;
+    }
+    return { probs: calibrate(probs, this.classes, this.config.temperature), embeddings, size };
   }
 
   /** Compiles the GPU programs before the first real frame. */
@@ -112,6 +149,13 @@ export async function loadSignModel(tf: typeof tfType, baseUrl: string): Promise
     tf.loadLayersModel(`${baseUrl}model.json`),
   ]);
   const signModel = new SignModel(tf, model, labels, config);
+  // Optional: only "Teach your own sign" needs it.
+  try {
+    const protos = await fetchJson<{ size: number; vectors: number[][] }>(`${baseUrl}prototypes.json`);
+    signModel.builtin = Float32Array.from(protos.vectors.flat());
+  } catch {
+    signModel.builtin = null;
+  }
   await signModel.warmUp();
   return signModel;
 }

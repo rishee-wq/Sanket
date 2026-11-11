@@ -8,10 +8,12 @@ import type { DetectedHand } from '../engine/features';
 import { useConversation } from '../hooks/useConversation';
 import { useSignEngine } from '../hooks/useSignEngine';
 import { HelpSignalDetector, helpShape } from '../lib/helpSignal';
+import { useCustomSigns, usePrototypes } from '../lib/mySigns';
 import { recordSign } from '../lib/signHistory';
 import { soundEffects } from '../services/soundEffects';
 import { LabView } from './app/LabView';
 import { LearnView } from './app/LearnView';
+import { MySignsView } from './app/MySignsView';
 import { SosView } from './app/SosView';
 import { TranslateView } from './app/TranslateView';
 
@@ -20,6 +22,7 @@ function initialView(): AppView {
   const v = new URLSearchParams(location.search).get('view') ?? new URLSearchParams(location.search).get('mode');
   if (v === 'learn') return 'learn';
   if (v === 'lab') return 'lab';
+  if (v === 'mysigns') return 'mysigns';
   return 'translate';
 }
 
@@ -47,7 +50,11 @@ export default function AppPage() {
   targetRef.current = learnTarget;
 
   const onTokenRef = useRef<(t: Token) => void>(() => {});
-  const { status, bundle, engine } = useSignEngine(view === 'learn' ? learnMode : mode, (t) => onTokenRef.current(t));
+  // My signs listens for both kinds of taught sign, so it runs letters and words together.
+  const engineMode: EngineMode = view === 'learn' ? learnMode : view === 'mysigns' ? 'auto' : mode;
+  const { status, bundle, engine } = useSignEngine(engineMode, (t) => onTokenRef.current(t));
+  const customSigns = useCustomSigns();
+  const prototypes = usePrototypes(engine, bundle, customSigns);
 
   const words = useMemo(
     () => (bundle?.dynamicModel ? bundle.dynamicModel.labels.filter((l) => l !== bundle.dynamicModel!.config.background) : EMPTY),
@@ -70,9 +77,10 @@ export default function AppPage() {
       return;
     }
     soundEffects.playAccepted();
+    setRecent((r) => [token, ...r].slice(0, RECENT));
+    if (viewRef.current === 'mysigns') return;
     recordSign(token.label, 'conversation');
     convo.addToken(token);
-    setRecent((r) => [token, ...r].slice(0, RECENT));
   };
 
   // Emergency: only the full two-step Signal for Help (thumb tucked, then fist) opens SOS.
@@ -109,7 +117,7 @@ export default function AppPage() {
 
   useEffect(() => setAttempt(null), [learnTarget]);
   useEffect(() => {
-    if (labels.length && !labels.includes(learnTarget)) setLearnTarget(labels[0]);
+    if (labels.length && !learnTarget.startsWith('sentence:') && !labels.includes(learnTarget)) setLearnTarget(labels[0]);
   }, [labels, learnTarget]);
 
   return (
@@ -134,6 +142,9 @@ export default function AppPage() {
       )}
       {view === 'learn' && (
         <LearnView stage={stage} engine={engine} labels={labels} target={learnTarget} onTarget={setLearnTarget} attempt={attempt} />
+      )}
+      {view === 'mysigns' && (
+        <MySignsView stage={stage} engine={engine} bundle={bundle} signs={customSigns} prototypes={prototypes} recent={recent} />
       )}
       {view === 'lab' && <LabView bundle={bundle} engine={engine} language={convo.language} />}
       {view === 'sos' && <SosView key={sosTrigger} triggered={sosTrigger > 0} onExit={() => go('translate')} />}

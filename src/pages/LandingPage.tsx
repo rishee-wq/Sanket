@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Camera, GraduationCap, Mic, Siren } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
+import { Intro, shouldShowIntro } from '../components/Intro';
 import { SanketMark, Wordmark } from '../components/Logo';
 import { Link } from '../lib/router';
 
@@ -66,13 +67,25 @@ const STEPS = [
   ['04', 'Decide', 'A hold gate and peak-picking turn noisy per-frame guesses into one committed sign, then a trie suggests the word.'],
 ];
 
+// Decided once per page load, so React's double-invoked initialisers in development cannot hide it.
+let introPending: boolean | null = null;
+
 export default function LandingPage() {
+  const [intro, setIntro] = useState(() => (introPending ??= shouldShowIntro()));
   const { user, enabled } = useAuth();
   const numbers = useNumbers();
   const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
   return (
     <div className="min-h-dvh">
+      {intro && (
+        <Intro
+          onDone={() => {
+            introPending = false;
+            setIntro(false);
+          }}
+        />
+      )}
       <header className="border-b-2 border-ink">
         <div className="mx-auto flex h-14 max-w-[1300px] items-center justify-between px-[var(--pad)]">
           <Link to="/" className="flex items-center gap-2.5" aria-label="Sanket home">

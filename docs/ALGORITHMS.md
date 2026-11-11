@@ -136,7 +136,35 @@ Windows are re-cut and re-augmented **every epoch**, so the network never sees t
 
 A softmax output of 0.9 should be right about 90% of the time. Raw networks rarely are, and here label smoothing makes ours *under*-confident. We fit one scalar T on the validation set to minimise the negative log-likelihood, and the app applies `softmax(log(p) / T)`. T does not change which class wins, only how sure the model claims to be. Because the app accepts a sign only above a confidence threshold, that threshold only means something after calibration. Expected calibration error before and after is in section 4.
 
-### 3.11 What we looked at but do not ship
+### 3.11 Few-shot learning: teach your own sign
+
+The **My signs** page lets a user add a sign the models were never trained on (a name sign, a local variant) from 3 to 5 recordings, with no retraining. It is a **prototypical network** (Snell et al., 2017) on top of the trained models (`src/engine/fewshot.ts`):
+
+1. **Embedding.** Each recording goes through the trained network but stops one layer early, at the 160-value `embedding` layer of the words TCN (or the 128-value one of the letters CNN for a held hand shape). This is transfer learning: the network learned, from 70 words, a space where different movements land far apart, and that space is reused for movements it has never seen. One forward pass returns both the prediction and the embedding (`SignModel.predictWithEmbedding`).
+2. **Prototype.** The examples are L2-normalised and averaged. That point is the sign's prototype.
+3. **Matching.** Every live window is embedded the same way and compared with each prototype by **cosine similarity** (the dot product of two unit vectors). The nearest prototype wins, if it clears that sign's threshold.
+4. **Open-set rejection (nearest class mean).** Most movements a user makes are *not* their taught sign, so rejecting is as important as matching. The app ships the mean embedding of every built-in class (`public/model/*/prototypes.json`, from the training data, written by `ml/export_prototypes.py`). A taught sign counts only if its similarity is at least **0.80** and it is no more than **0.10** below the closest built-in class, whether one of the 70 words or "no sign". Both numbers come from the experiment below.
+5. **Merging with the models.** A matched movement becomes an extra detection for the word spotter; a matched hand shape becomes an extra class for the letter gate. A taught sign wins close calls, because the user taught it on purpose.
+
+Recordings are stored as raw landmarks (int16, base64) in `localStorage`, so the embeddings can be recomputed if a model is retrained, and nothing leaves the device.
+
+**Experiment** (`ml/eval_fewshot.py`). The honest test is on signs the network has never seen, so 15 of the 70 words (attack, bank, brother, car, he, hospital, house, it, key, loud, night, old, student, today, young) were held out completely and the TCN was retrained on the other 55. Each result is averaged over 300 random choices of which 5 videos are the examples.
+
+- **Which new sign is it?** With all 15 new words taught at once, the nearest prototype is right **75.9%** of the time (±2.8%), against 6.7% for guessing.
+- **Is it a taught sign at all?** A user has taught 3 signs. New performances of them must be accepted; rest poses, the 55 known words and the 12 untaught new words must be rejected.
+
+| Rejection rule | Real performances accepted | Other movements wrongly accepted |
+| --- | --- | --- |
+| Per-sign threshold from the examples' own consistency (first version) | 73% | **67%** |
+| Similarity threshold alone, best setting (0.84) | 64% | 4% |
+| Must beat every built-in class outright | 45% | 1% |
+| **Similarity ≥ 0.80 and within 0.10 of the closest built-in class (ships)** | **68%** | **4%** |
+
+The first version looked fine in a quick test and failed this one: almost any movement was "close enough" to some taught sign. Comparing against the built-in classes fixed it. About two in three performances are recognised; a missed sign costs a repeat, while a false one would put a wrong word in someone's mouth, so the rule leans towards rejecting.
+
+The hand-shape variant (built on the letters CNN) uses the same rule but has not been measured separately.
+
+### 3.12 What we looked at but do not ship
 
 - **LSTM / GRU**: trained as baselines (section 4). The BiLSTM is slightly more accurate than the TCN on this test set and four times slower.
 - **R-CNN on images**: explained in 3.6. The idea is used in time; the image version is unnecessary once landmarks exist.
@@ -296,6 +324,8 @@ Suggestion queries repeat constantly as the screen re-renders. The cache gives *
 | `python ml/check_parity.py` | Python and TypeScript compute the same features (difference below 1e-5) |
 | `node ml/check_tfjs.mjs static` / `dynamic` | TensorFlow.js gives the same outputs as Keras for the exported models |
 | `npm test` | The data structures behave as documented, and every test recording streamed through the real engine is committed correctly |
+| `npm test` (`tests/fewshot.test.mjs`) | A taught sign is recognised by the live engine and four other words are not mistaken for it |
+| `python ml/eval_fewshot.py` | The few-shot method works on words the network never saw (section 3.11) |
 | `npm run lint` | The app type-checks |
 
 `tests/stream.test.mjs` is the important one: it feeds every exemplar (one held-out recording per sign) frame by frame through the same `SignEngine` the browser uses, so it tests features, models, proposals, suppression and the state machines together.

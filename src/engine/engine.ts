@@ -28,6 +28,7 @@ import {
   toSlots,
 } from './features.ts';
 import { topKIndices } from './heap.ts';
+import { type Prototype, type Recording, bestMatch } from './fewshot.ts';
 import type { SignModel } from './model.ts';
 import { FrameRing } from './ringBuffer.ts';
 import {
@@ -49,6 +50,8 @@ export interface Candidate {
 
 export interface Token {
   kind: 'letter' | 'word';
+  /** True for a sign the user taught (fewshot.ts). */
+  custom?: boolean;
   label: string;
   confidence: number;
   /** Capture time of the frame that completed the sign. */
@@ -102,6 +105,11 @@ const RING_CAPACITY = 256;
 /** Landmarks averaged into the palm centre used for the speed estimate: wrist, index base, pinky base. */
 const PALM = [0, 5, 17];
 
+/** The model's class prototypes in the shape bestMatch() wants, if it shipped them. */
+function builtinOf(model: SignModel, size: number) {
+  return model.builtin ? { vectors: model.builtin, size } : null;
+}
+
 function emptyTelemetry(): Telemetry {
   return {
     fps: 0,
@@ -145,6 +153,8 @@ export class SignEngine {
   private baseHoldMs = 0;
   private lettersBlockedUntil = -Infinity;
   private disposed = false;
+  /** The user's own signs, matched against model embeddings (few-shot). */
+  private prototypes: Prototype[] = [];
   private readonly batch: Float32Array;
   private readonly windowHands = new Float32Array(SEQUENCE_LENGTH * RAW_SIZE);
   private readonly windowFeatures = new Float32Array(SEQUENCE_LENGTH * FRAME_SIZE);
@@ -265,7 +275,11 @@ export class SignEngine {
     const started = performance.now();
     const speed = this.speed;
     const input = this.ring.features.slice(slot * FRAME_SIZE, (slot + 1) * FRAME_SIZE);
-    model.predict(input).then(
+    const custom = this.prototypes.some((p) => p.kind === 'shape');
+    const run = custom
+      ? model.predictWithEmbedding(input).then((r) => this.withShapeMatch(model, r.probs, r.embeddings))
+      : model.predict(input);
+    run.then(
       (probs) => {
         this.staticBusy = false;
         if (this.disposed || !this.handsVisible) return;
@@ -277,9 +291,9 @@ export class SignEngine {
         const blocked = this.spotter.tracking !== null || time < this.lettersBlockedUntil;
         const state = this.letterGate.update(probs, blocked ? Infinity : speed, time, model.backgroundIndex);
         const smoothed = this.letterGate.probabilities ?? probs;
-        const top = topKIndices(smoothed, 3, model.backgroundIndex).map((s) => ({ label: model.labels[s.item], score: s.score }));
+        const top = topKIndices(smoothed, 3, model.backgroundIndex).map((s) => ({ label: this.labelOf(model, s.item), score: s.score }));
         telemetry.letter = {
-          label: state.candidate >= 0 ? model.labels[state.candidate] : null,
+          label: state.candidate >= 0 ? this.labelOf(model, state.candidate) : null,
           progress: state.progress,
           confidence: state.confidence,
           top,
@@ -287,7 +301,8 @@ export class SignEngine {
         if (state.accepted) {
           // The movement that brought the hand here was not a word.
           this.spotter.restart(this.ring.newest + 1);
-          this.emit('letter', model.labels[state.candidate], state.confidence, time, top);
+          const custom = state.candidate >= model.classes;
+          this.emit(custom ? 'word' : 'letter', this.labelOf(model, state.candidate), state.confidence, time, top, custom);
         }
       },
       () => {
@@ -370,9 +385,13 @@ export class SignEngine {
     this.dynamicBusy = true;
     const started = performance.now();
     const input = this.batch.slice(0, proposals.length * SEQUENCE_LENGTH * SEQ_FRAME_SIZE);
+    const custom = this.prototypes.some((p) => p.kind === 'movement');
+    const run = custom
+      ? model.predictWithEmbedding(input, proposals.length)
+      : model.predict(input, proposals.length).then((probs) => ({ probs, embeddings: null, size: 0 }));
 
-    model.predict(input, proposals.length).then(
-      (probs) => {
+    run.then(
+      ({ probs, embeddings, size }) => {
         this.dynamicBusy = false;
         if (this.disposed) return;
         const { telemetry, spotter } = this;
@@ -386,19 +405,31 @@ export class SignEngine {
         for (let i = 0; i < proposals.length; i++) {
           const row = probs.subarray(i * classes, (i + 1) * classes);
           const ranked = topKIndices(row, 3, model.backgroundIndex);
-          const top = ranked.map((s) => ({ label: model.labels[s.item], score: s.score }));
+          let top = ranked.map((s) => ({ label: model.labels[s.item], score: s.score }));
+          let label = ranked[0].item;
+          let score = ranked[0].score;
+          const match = embeddings
+            ? bestMatch(this.prototypes, 'movement', embeddings.subarray(i * size, (i + 1) * size), 0, builtinOf(model, size))
+            : null;
+          // A taught sign wins unless the model is clearly more sure of a built-in word: the user
+          // taught it on purpose, so close calls go their way.
+          if (match && match.score >= score - 0.15) {
+            label = model.classes + match.index;
+            score = match.score;
+            top = [{ label: this.prototypes[match.index].text, score }, ...top.slice(0, 2)];
+          }
           if (!shown || top[0].score > shown.top[0].score) {
             shown = { top, background: model.backgroundIndex >= 0 ? row[model.backgroundIndex] : 0 };
           }
           if (travel[i] < spotter.options.minTravel) continue;
-          detections.push({ ...proposals[i], label: ranked[0].item, score: ranked[0].score, top });
+          detections.push({ ...proposals[i], label, score, top });
         }
 
         let committed = spotter.update(detections);
         if (!committed && final) committed = spotter.flush();
         const tracking = spotter.tracking;
         telemetry.word = {
-          label: tracking ? model.labels[tracking.label] : null,
+          label: tracking ? this.labelOf(model, tracking.label) : null,
           score: tracking ? tracking.score : (shown?.top[0].score ?? 0),
           background: shown?.background ?? 1,
           top: shown?.top ?? [],
@@ -417,7 +448,46 @@ export class SignEngine {
     const top = (detection as Detection & { top?: Candidate[] }).top ?? [];
     this.lettersBlockedUntil = this.lastFrameTime + LETTER_BLOCK_AFTER_WORD_MS;
     this.letterGate.reset();
-    this.emit('word', model.labels[detection.label], detection.score, detection.endTime, top);
+    this.emit('word', this.labelOf(model, detection.label), detection.score, detection.endTime, top, detection.label >= model.classes);
+  }
+
+  /** Model classes first, then the user's taught signs. */
+  private labelOf(model: SignModel, index: number): string {
+    return index < model.classes ? model.labels[index] : (this.prototypes[index - model.classes]?.text ?? '?');
+  }
+
+  /**
+   * Adds the taught hand shapes as extra classes after the model's own. If one
+   * matches, it takes its match score and the model's probabilities share the rest.
+   */
+  private withShapeMatch(model: SignModel, probs: Float32Array, embedding: Float32Array): Float32Array {
+    const out = new Float32Array(model.classes + this.prototypes.length);
+    const match = bestMatch(this.prototypes, 'shape', embedding, 0, builtinOf(model, embedding.length));
+    const keep = match ? 1 - match.score : 1;
+    for (let i = 0; i < model.classes; i++) out[i] = probs[i] * keep;
+    if (match) out[model.classes + match.index] = match.score;
+    return out;
+  }
+
+  /** Replaces the taught signs the engine looks for. */
+  setPrototypes(prototypes: Prototype[]) {
+    this.prototypes = prototypes;
+    this.letterGate.reset();
+  }
+
+  /** Copies frames `from`..newest out of the ring, for recording a sign to teach. */
+  snapshot(from: number): Recording {
+    const { ring } = this;
+    const start = Math.max(from, ring.oldest);
+    const frames = Math.max(0, ring.total - start);
+    const hands = new Float32Array(frames * RAW_SIZE);
+    const present = new Uint8Array(frames);
+    for (let i = 0; i < frames; i++) {
+      const slot = ring.slot(start + i);
+      hands.set(ring.hands.subarray(slot * RAW_SIZE, (slot + 1) * RAW_SIZE), i * RAW_SIZE);
+      present[i] = ring.present[slot];
+    }
+    return { hands, present, frames };
   }
 
   private finishSegment() {
@@ -426,8 +496,8 @@ export class SignEngine {
     this.telemetry.word = { label: null, score: 0, background: 1, top: [] };
   }
 
-  private emit(kind: Token['kind'], label: string, confidence: number, time: number, alternatives: Candidate[]) {
-    this.onToken({ kind, label, confidence, time, latencyMs: Math.max(0, this.lastFrameTime - time), alternatives });
+  private emit(kind: Token['kind'], label: string, confidence: number, time: number, alternatives: Candidate[], custom = false) {
+    this.onToken({ kind, label, confidence, time, latencyMs: Math.max(0, this.lastFrameTime - time), alternatives, custom });
   }
 
   private applyHold() {

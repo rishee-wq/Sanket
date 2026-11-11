@@ -1,15 +1,16 @@
 import React from 'react';
-import { FlaskConical, GraduationCap, Languages, Siren, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { FlaskConical, GraduationCap, Hand, Languages, Siren, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import type { EngineStatus, ModelBundle } from '../../hooks/useSignEngine';
 import { Link } from '../../lib/router';
 import { SanketMark, Wordmark } from '../Logo';
 
-export type AppView = 'translate' | 'learn' | 'lab' | 'sos';
+export type AppView = 'translate' | 'learn' | 'mysigns' | 'lab' | 'sos';
 
 const NAV: { view: AppView; label: string; hindi: string; icon: React.FC<{ className?: string }> }[] = [
   { view: 'translate', label: 'Translate', hindi: 'अनुवाद', icon: Languages },
   { view: 'learn', label: 'Learn', hindi: 'सीखें', icon: GraduationCap },
+  { view: 'mysigns', label: 'My signs', hindi: 'मेरे इशारे', icon: Hand },
   { view: 'lab', label: 'Model lab', hindi: 'प्रयोगशाला', icon: FlaskConical },
 ];
 
@@ -102,7 +103,7 @@ export const AppShell: React.FC<ShellProps> = ({ view, onView, status, bundle, s
 
       {/* Phones: the sections move to a bottom bar within thumb reach. */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t-2 border-ink bg-paper pb-[var(--safe-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t-2 border-ink bg-paper pb-[var(--safe-bottom)] md:hidden"
         aria-label="App sections"
       >
         {NAV.map(({ view: v, label, icon: Icon }) => (

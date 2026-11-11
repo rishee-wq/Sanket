@@ -338,3 +338,64 @@ button:disabled {
     transition: none;
   }
 }
+
+/* Logo mark: fingers rise one by one, then the two waves ripple out. */
+@keyframes finger-rise {
+  from {
+    transform: scaleY(0.05);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes wave-out {
+  0% {
+    opacity: 0;
+    transform: translateX(-3px);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes palm-in {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.mark-animate .mark-finger {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: finger-rise 260ms var(--ease-snap) both;
+}
+
+.mark-animate .mark-thumb {
+  transform-origin: 100% 100%;
+}
+
+.mark-animate .mark-wave {
+  animation: wave-out 380ms var(--ease-snap) both;
+}
+
+.mark-animate .mark-palm {
+  animation: palm-in 220ms var(--ease-snap) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark-animate .mark-finger,
+  .mark-animate .mark-wave,
+  .mark-animate .mark-palm {
+    animation: none;
+  }
+}
