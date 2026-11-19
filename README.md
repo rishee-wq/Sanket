@@ -82,7 +82,7 @@ Test accuracy is measured on held-out data from the same datasets, so a new sign
 Accounts are optional; without this the app runs in guest mode.
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the dashboard, open **SQL Editor** and run [`supabase/migrations/20261015000000_accounts.sql`](supabase/migrations/20261015000000_accounts.sql).
+2. In the dashboard, open **SQL Editor** and run the two files in [`supabase/migrations/`](supabase/migrations/) in order: `20261015000000_accounts.sql` (tables, row-level security, triggers) and `20261119000000_grants.sql` (table privileges; newer projects don't grant these automatically). With the Supabase CLI you can instead run `supabase link --project-ref <ref>` and `supabase db query --linked -f <file>` for each.
 3. Under **Authentication → URL Configuration**, set the Site URL to `http://localhost:3000` and add `http://localhost:3000/**` to the redirect URLs.
 4. Copy `.env.example` to `.env.local` and fill in the project URL and anon key.
 5. Restart `npm run dev`.
