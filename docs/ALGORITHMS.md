@@ -194,6 +194,22 @@ How to read this honestly:
 
 Calibration (TCN): expected calibration error 5.9% before temperature scaling, 2.5% after (T = 0.84).
 
+### Words on people the model has not seen (held-out recording sessions)
+
+The table above uses a random split by video, and INCLUDE has every signer record every word, so the test set contains the same people as the training set. To estimate what a new person will see, `python ml/train_dynamic.py --split session --no-export` holds out whole recording sessions instead. INCLUDE has no signer column, but the camera numbers its files and each person records a word about three times in a row, so a jump of more than 5 in the file number starts a new session (about 5 sessions per word, `sessions_of()`). No test session appears in training.
+
+| Split | Word accuracy | With background windows | Top-3 | Macro F1 | Training videos |
+| --- | --- | --- | --- | --- | --- |
+| Random by video (shipped model's report) | 92.1% | 94.2% | 97.1% | 91.5% | 928 |
+| **Held-out sessions (new people)** | **62.2%** | 73.8% | 86.2% | 59.2% | 776 |
+
+How to read this honestly:
+
+- About 30 points are lost on people the network never saw. Some of that is the smaller training set (776 videos instead of 928), but most of it is signer variation: how high people hold their hands, how big the movements are, their speed.
+- Top-3 stays at 86%, so the right word is usually among the alternatives the app shows, even when it is not first.
+- This is why the app lets a learner record their own version of a sign (section 3.11, and "Teach Sanket your way" in Learn): per-user prototypes close exactly this gap, and it is the standard remedy for signer-independent recognition with small datasets.
+- More signers in the training data would help most. INCLUDE has only a handful per word.
+
 ### Letters and digits
 
 35 classes plus `_none`, 6,700 test images.
@@ -345,7 +361,7 @@ The hand tracker's own confidence thresholds were lowered from 0.5 to 0.4, so ha
 
 ## 8. Limits
 
-- **Test accuracy is not field accuracy.** The test data comes from the same datasets as the training data: the same signers, cameras and rooms. A new person on a webcam will score lower. The letter images in particular appear to come from one signer, which is why that score is near 100%.
+- **Test accuracy is not field accuracy.** The headline test sets share signers, cameras and rooms with the training data. Holding out whole recording sessions drops word accuracy from 92% to 62% (top-3 86%); see "Words on people the model has not seen". The letter images appear to come from one signer, which is why that score is near 100%. Teaching your own version of a sign is the in-app remedy.
 - **INCLUDE signers stand far from the camera.** Their hands are small in the frame, so the training landmarks are noisier than a webcam user's. Normalisation removes the size difference but not the noise difference.
 - **Only the hands are used.** Signs that differ only by where they are made relative to the face or body, or by facial expression, cannot be told apart.
 - **Isolated signs.** The models were trained on single signs. Signing several in a row works when there is a brief pause between them; fluent, co-articulated signing is a harder problem.

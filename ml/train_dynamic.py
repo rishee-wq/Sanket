@@ -23,6 +23,8 @@ import argparse
 import json
 import time
 
+import re
+
 import numpy as np
 import tf_keras as keras
 
@@ -45,6 +47,56 @@ def stratified_split(y: np.ndarray, seed: int, val: float = 0.15, test: float = 
         te += list(idx[:n_test])
         va += list(idx[n_test : n_test + n_val])
         train += list(idx[n_test + n_val :])
+    return np.array(train), np.array(va), np.array(te)
+
+
+def sessions_of(paths) -> np.ndarray:
+    """Recording session of every video, for a split by person.
+
+    INCLUDE has no signer column, but the camera numbers its files: one person
+    records each word several times in a row (MVI_5177, 5178, 5179), then the
+    next person takes over (MVI_5257 ...). So within a word, a jump of more than
+    5 in the file number starts a new session, which is a good stand-in for a
+    new signer.
+    """
+    out = np.zeros(len(paths), dtype=np.int64)
+    by_word: dict[str, list[tuple[int, int]]] = {}
+    for i, path in enumerate(paths):
+        word = str(path).rsplit("/", 1)[0]
+        digits = re.findall(r"(\d+)", str(path).rsplit("/", 1)[-1])
+        by_word.setdefault(word, []).append((int(digits[-1]) if digits else i, i))
+    next_id = 0
+    for items in by_word.values():
+        items.sort()
+        last = None
+        for num, i in items:
+            if last is None or num - last > 5:
+                next_id += 1
+            out[i] = next_id
+            last = num
+    return out
+
+
+def session_split(y: np.ndarray, sessions: np.ndarray, seed: int, val: float = 0.15, test: float = 0.15):
+    """Per word: whole recording sessions go to test and validation, so the
+    test set only has people this word was never trained on."""
+    rng = np.random.default_rng(seed)
+    train, va, te = [], [], []
+    for c in np.unique(y):
+        idx = np.where(y == c)[0]
+        groups = rng.permutation(np.unique(sessions[idx]))
+        n = len(idx)
+        chosen_te, chosen_va = [], []
+        for g in groups:
+            members = list(idx[sessions[idx] == g])
+            if len(chosen_te) < max(2, round(n * test)):
+                chosen_te += members
+            elif len(chosen_va) < max(2, round(n * val)):
+                chosen_va += members
+            else:
+                train += members
+        te += chosen_te
+        va += chosen_va
     return np.array(train), np.array(va), np.array(te)
 
 
@@ -122,6 +174,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--no-export", action="store_true")
+    parser.add_argument("--split", choices=["random", "session"], default="random",
+                        help="random: per word, any video; session: hold out whole recording sessions (new people)")
     args = parser.parse_args()
 
     from models import DYNAMIC_MODELS
@@ -131,7 +185,10 @@ def main():
     videos = Videos(data)
     labels = [str(s) for s in data["labels"]] + [BACKGROUND]
     background = len(labels) - 1
-    tr, va, te = stratified_split(videos.y, args.seed)
+    if args.split == "session":
+        tr, va, te = session_split(videos.y, sessions_of(data["paths"]), args.seed)
+    else:
+        tr, va, te = stratified_split(videos.y, args.seed)
     print(f"{len(videos.y)} videos, {background} words + background: train {len(tr)}, val {len(va)}, test {len(te)}")
 
     x_val, y_val = fixed_set(videos, va, background, 1)
@@ -148,7 +205,7 @@ def main():
     model.summary(line_length=110)
 
     RUNS.mkdir(exist_ok=True)
-    ckpt = RUNS / f"dynamic_{args.model}.weights.h5"
+    ckpt = RUNS / f"dynamic_{args.model}{'_session' if args.split == 'session' else ''}.weights.h5"
     t0 = time.time()
     history = model.fit(
         batches,
@@ -193,7 +250,7 @@ def main():
         "split": {"train": len(tr), "val": len(va), "test": len(te)},
         "test": {k: v for k, v in metrics.items() if k not in ("per_class", "confusion")},
     }
-    (RUNS / f"dynamic_{args.model}.json").write_text(json.dumps(summary, indent=2))
+    (RUNS / f"dynamic_{args.model}{'_session' if args.split == 'session' else ''}.json").write_text(json.dumps(summary, indent=2))
 
     if args.model == "tcn" and not args.no_export:
         save_plots("dynamic_tcn", history, metrics, labels)
