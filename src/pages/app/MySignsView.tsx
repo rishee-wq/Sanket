@@ -6,7 +6,7 @@ import { POINTS, RAW_SIZE, SHAPE_SIZE } from '../../engine/features';
 import { type CustomKind, type CustomSign, MIN_EXAMPLES, type Prototype, type Recording, buildPrototype } from '../../engine/fewshot';
 import type { ModelBundle } from '../../hooks/useSignEngine';
 import { drawHands, ON_PAPER } from '../../lib/handDrawing';
-import { checkRecording, deleteCustomSign, embedRecordings, saveCustomSign } from '../../lib/mySigns';
+import { takeTeachRequest, checkRecording, deleteCustomSign, embedRecordings, saveCustomSign } from '../../lib/mySigns';
 import { soundEffects } from '../../services/soundEffects';
 
 interface Props {
@@ -124,8 +124,9 @@ const Teach: React.FC<{ stage: Stage; engine: SignEngine | null; bundle: ModelBu
   bundle,
   existing,
 }) => {
-  const [text, setText] = useState('');
-  const [kind, setKind] = useState<CustomKind>('movement');
+  const [request] = useState(takeTeachRequest);
+  const [text, setText] = useState(request?.text ?? '');
+  const [kind, setKind] = useState<CustomKind>(request?.kind ?? 'movement');
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [preview, setPreview] = useState<Prototype | null>(null);

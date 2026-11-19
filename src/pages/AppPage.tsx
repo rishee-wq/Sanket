@@ -8,7 +8,7 @@ import type { DetectedHand } from '../engine/features';
 import { useConversation } from '../hooks/useConversation';
 import { useSignEngine } from '../hooks/useSignEngine';
 import { HelpSignalDetector, helpShape } from '../lib/helpSignal';
-import { useCustomSigns, usePrototypes } from '../lib/mySigns';
+import { requestTeach, useCustomSigns, usePrototypes } from '../lib/mySigns';
 import { recordSign } from '../lib/signHistory';
 import { soundEffects } from '../services/soundEffects';
 import { LabView } from './app/LabView';
@@ -141,7 +141,18 @@ export default function AppPage() {
         <TranslateView stage={stage} engine={engine} mode={mode} onMode={setMode} convo={convo} recent={recent} sosArmed={sosArmed} />
       )}
       {view === 'learn' && (
-        <LearnView stage={stage} engine={engine} labels={labels} target={learnTarget} onTarget={setLearnTarget} attempt={attempt} />
+        <LearnView
+          stage={stage}
+          engine={engine}
+          labels={labels}
+          target={learnTarget}
+          onTarget={setLearnTarget}
+          attempt={attempt}
+          onTeach={(label, kind) => {
+            requestTeach(label, kind);
+            go('mysigns');
+          }}
+        />
       )}
       {view === 'mysigns' && (
         <MySignsView stage={stage} engine={engine} bundle={bundle} signs={customSigns} prototypes={prototypes} recent={recent} />

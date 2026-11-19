@@ -30,7 +30,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         // 60 fps when the camera offers it: less motion blur and a newer frame every 16 ms.
-        video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } },
+        video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60 } },
         audio: false,
       });
       const video = videoRef.current;

@@ -20,6 +20,8 @@ interface Props {
   onTarget: (target: string) => void;
   /** The last sign the engine committed while this view was open. */
   attempt: Token | null;
+  /** Opens My signs to record the learner's own version of a sign. */
+  onTeach?: (label: string, kind: 'shape' | 'movement') => void;
 }
 
 const isSentence = (t: string) => t.startsWith('sentence:');
@@ -160,6 +162,7 @@ const SignLesson: React.FC<Props & { clips: Record<string, Clip> | null; exempla
   clips,
   exemplars,
   next,
+  onTeach,
 }) => {
   const entry = vocab(target);
   const letter = entry.group === 'letter' || entry.group === 'number';
@@ -188,6 +191,18 @@ const SignLesson: React.FC<Props & { clips: Record<string, Clip> | null; exempla
         {matched && (
           <button className="btn btn-ink mt-2 w-full" onClick={next} autoFocus>
             Next <ArrowRight className="h-5 w-5" />
+          </button>
+        )}
+        {!matched && onTeach && (
+          <button
+            className="mt-2 w-full rounded-md border-2 border-ink bg-card p-3 text-left text-[14px] leading-snug hover:bg-white"
+            onClick={() => onTeach(target, letter ? 'shape' : 'movement')}
+          >
+            <span className="font-semibold">Not recognising you? Teach Sanket your way.</span>
+            <span className="block text-mute">
+              Record yourself signing “{entry.text}” 3 times. From then on Sanket compares your signing with your own
+              recordings too, in your lighting, on your camera.
+            </span>
           </button>
         )}
         <div className="mt-3 rounded-md border-2 border-dashed border-ink/40 p-3 text-[14px] leading-snug">

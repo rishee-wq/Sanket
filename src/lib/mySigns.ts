@@ -52,6 +52,24 @@ export function useCustomSigns(): CustomSign[] {
   }, read);
 }
 
+let pendingTeach: { text: string; kind: CustomKind } | null = null;
+
+/**
+ * Asks the My signs page to open its teach form with this sign filled in.
+ * Teaching your own version of a built-in word (same name as its label) makes
+ * the engine prefer your recording in close calls: per-user adaptation.
+ */
+export function requestTeach(text: string, kind: CustomKind) {
+  pendingTeach = { text, kind };
+}
+
+/** Returns the pending teach request once, then forgets it. */
+export function takeTeachRequest(): { text: string; kind: CustomKind } | null {
+  const request = pendingTeach;
+  pendingTeach = null;
+  return request;
+}
+
 export function saveCustomSign(sign: CustomSign) {
   const rest = read().filter((s) => s.id !== sign.id);
   write([...rest, sign]);

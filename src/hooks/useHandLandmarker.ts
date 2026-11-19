@@ -21,9 +21,11 @@ function loadLandmarker(): Promise<HandLandmarker> {
           baseOptions: { modelAssetPath: MODEL_URL, delegate },
           runningMode: 'VIDEO',
           numHands: 2,
-          minHandDetectionConfidence: 0.5,
-          minHandPresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5,
+          // Lower than MediaPipe's 0.5 defaults so hands are still found in dim light and
+          // motion blur. The smoother (engine/smoothing.ts) cleans up the extra jitter.
+          minHandDetectionConfidence: 0.4,
+          minHandPresenceConfidence: 0.4,
+          minTrackingConfidence: 0.4,
         }
       );
     landmarkerPromise = create('GPU').catch((err) => {
@@ -63,13 +65,16 @@ export function useHandLandmarker() {
     };
   }, []);
 
-  /** Detects up to two hands in the current video frame. */
+  /**
+   * Detects up to two hands in the current video frame. `image` is what the
+   * tracker actually looks at (a brightened copy in low light); it defaults to the video.
+   */
   const detect = useCallback(
-    (video: HTMLVideoElement): DetectedHand[] => {
+    (video: HTMLVideoElement, image: HTMLVideoElement | HTMLCanvasElement = video): DetectedHand[] => {
       if (!landmarker || video.readyState < 2 || video.videoWidth === 0) return [];
       // VIDEO mode needs strictly increasing timestamps, even across components.
       lastTimestamp = Math.max(performance.now(), lastTimestamp + 1);
-      const result = landmarker.detectForVideo(video, lastTimestamp);
+      const result = landmarker.detectForVideo(image, lastTimestamp);
       return result.landmarks.map((landmarks, i) => {
         const category = result.handedness[i]?.[0];
         const label = category?.categoryName;

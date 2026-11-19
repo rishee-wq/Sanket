@@ -6,6 +6,7 @@ import { useCamera } from '../../hooks/useCamera';
 import { useHandLandmarker } from '../../hooks/useHandLandmarker';
 import { type LoopStats, useLiveLoop, useSnapshot } from '../../hooks/useLiveLoop';
 import { type Exemplar, ReplayPlayer, loadExemplars } from '../../lib/exemplars';
+import { FRAMING_TEXT } from '../../lib/framing';
 
 interface StageOptions {
   engine: SignEngine | null;
@@ -83,9 +84,24 @@ const Hud: React.FC<{ engine: SignEngine | null; stats: React.RefObject<LoopStat
         {model > 0 && <span className="chip border-white/40 bg-night text-white">letters {snap.staticMs.toFixed(0)} ms</span>}
         {snap.dynamicMs > 0 && <span className="chip border-white/40 bg-night text-white">words {snap.dynamicMs.toFixed(0)} ms</span>}
       </div>
-      <span className={`chip bg-night ${snap.hands ? 'border-signal text-signal' : 'border-white/40 text-white/70'}`}>
-        {snap.hands === 0 ? 'no hands' : snap.hands === 1 ? '1 hand' : '2 hands'}
-      </span>
+      <div className="flex flex-wrap justify-end gap-1.5">
+        {source === 'live' && snap.light !== 'good' && (
+          <span
+            className={`chip bg-night ${snap.light === 'dark' ? 'border-alarm text-white' : 'border-signal text-signal'}`}
+            title="The frame is brightened before hand tracking"
+          >
+            {snap.light === 'dark' ? 'too dark: add light' : 'low light'} · boost ×{snap.gain.toFixed(1)}
+          </span>
+        )}
+        <span className={`chip bg-night ${snap.hands ? 'border-signal text-signal' : 'border-white/40 text-white/70'}`}>
+          {snap.hands === 0 ? 'no hands' : snap.hands === 1 ? '1 hand' : '2 hands'}
+        </span>
+      </div>
+      {source === 'live' && snap.framing && (
+        <div role="status" className="absolute inset-x-0 top-[calc(100%+0.5rem)] flex justify-center">
+          <span className="chip border-signal bg-signal text-ink">{FRAMING_TEXT[snap.framing]}</span>
+        </div>
+      )}
     </div>
   );
 };

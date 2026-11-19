@@ -302,6 +302,17 @@ Suggestion queries repeat constantly as the screen re-renders. The cache gives *
 | t-SNE | `ml/common.py` | The 2-D picture of the embedding layer on the Model lab page |
 | Rule-based geometry | `src/lib/helpSignal.ts` | The SOS gesture does not depend on a learned model |
 
+### 5.13 Live input clean-up: low-light gain, One-Euro filter, framing coach
+
+The models only ever see landmarks, so the quality of those landmarks on a real webcam decides most of what the user experiences. Three small stages sit between the camera and the engine (`useLiveLoop.ts`):
+
+1. **Adaptive low-light gain** · `src/lib/lightBoost.ts`. Every 300 ms the frame is drawn onto a 48 x 27 canvas and its mean luma `L = 0.2126 R + 0.7152 G + 0.0722 B` is taken. The target gain is `clamp(0.42 / L, 1, 2.6)`, smoothed with an exponential moving average so the picture does not pump. When the gain is above 1.08, each frame is redrawn on a canvas with a GPU `brightness()` / `contrast()` filter and that copy is what MediaPipe sees; the person still sees the normal video. Below a mean luma of 0.12 the UI asks for more light, because brightening also brightens noise.
+2. **One-Euro filter** · `src/engine/smoothing.ts` (Casiez, Roussel & Vogel, 2012). Each of the 63 coordinates of each hand is an exponential moving average whose smoothing factor is `a = 1 / (1 + tau / dt)` with `tau = 1 / (2 pi f_c)`, and whose cutoff `f_c = f_min + beta * |speed|` rises with the coordinate's (itself smoothed) speed. Still hands get `f_min = 1.6 Hz`, which removes detector jitter that would otherwise look like movement to the word spotter and make letters flicker; fast hands get a cutoff near 10 Hz, so real signing is not delayed (under 2% of the frame width in the tests). Hands are matched frame to frame by nearest wrist rather than by MediaPipe's handedness label, which can flip for a frame.
+3. **Dropout bridging.** A hand the detector loses for a moment (motion blur, dim light) is kept at its last smoothed position for up to 140 ms, so a sign is not cut in two by a missed frame or two. A hand that has really left disappears after that.
+4. **Framing coach** · `src/lib/framing.ts`. From the landmarks' bounding box: any point within 2% of the frame edge gives "keep your hands inside the frame", a hand taller than 55% of the frame gives "move back", and one smaller than 7% gives "come closer". The hint stays up for 1.2 s so it does not flicker.
+
+The hand tracker's own confidence thresholds were lowered from 0.5 to 0.4, so hands are still found in poorer light; the filter absorbs the extra jitter. The camera is asked for 1280 x 720 instead of 640 x 480, which gives the landmark model more pixels per finger. `tests/smoothing.test.mjs` checks jitter reduction, lag, dropout bridging, hand identity and the framing rules.
+
 ---
 
 ## 6. Why it is fast

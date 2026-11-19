@@ -1,6 +1,9 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 import type { SignEngine, Telemetry } from '../engine/engine';
 import type { DetectedHand } from '../engine/features';
+import { HandSmoother } from '../engine/smoothing';
+import { type FramingHint, framingHint } from '../lib/framing';
+import { type LightLevel, LightBoost } from '../lib/lightBoost';
 import { type ReplayPlayer, type View, exemplarView } from '../lib/exemplars';
 import { type HandStyle, ON_VIDEO, drawHands } from '../lib/handDrawing';
 
@@ -11,6 +14,11 @@ export interface LoopStats {
   frames: number;
   /** performance.now() of the last accepted token, for the green flash. */
   acceptedAt: number;
+  /** Camera brightness and the boost applied before hand tracking. */
+  light: LightLevel;
+  gain: number;
+  /** Current framing advice (held for a moment so it does not flicker). */
+  framing: FramingHint;
 }
 
 interface Options {
@@ -18,7 +26,7 @@ interface Options {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   cameraActive: boolean;
   mirrored: boolean;
-  detect: (video: HTMLVideoElement) => DetectedHand[];
+  detect: (video: HTMLVideoElement, image?: HTMLVideoElement | HTMLCanvasElement) => DetectedHand[];
   engine: SignEngine | null;
   /** When set, frames come from recorded landmarks instead of the camera. */
   replay: ReplayPlayer | null;
@@ -29,6 +37,8 @@ interface Options {
 }
 
 const ACCEPT_FLASH_MS = 320;
+/** A framing hint stays up at least this long once shown. */
+const HINT_HOLD_MS = 1200;
 
 /**
  * The per-frame loop: camera frame -> MediaPipe -> engine -> overlay.
@@ -42,7 +52,7 @@ const ACCEPT_FLASH_MS = 320;
  * engine.telemetry.
  */
 export function useLiveLoop(options: Options) {
-  const stats = useRef<LoopStats>({ detectMs: 0, frames: 0, acceptedAt: -Infinity });
+  const stats = useRef<LoopStats>({ detectMs: 0, frames: 0, acceptedAt: -Infinity, light: 'good', gain: 1, framing: null });
   const opts = useRef(options);
   opts.current = options;
   const { cameraActive, engine, replay } = options;
@@ -54,6 +64,9 @@ export function useLiveLoop(options: Options) {
     const video = options.videoRef.current;
     let view: View | undefined;
     let viewFor: unknown = null;
+    const boost = typeof document !== 'undefined' ? new LightBoost() : null;
+    const smoother = new HandSmoother();
+    let hintSince = -Infinity;
 
     const draw = (hands: DetectedHand[], mirrored: boolean, now: number, zoom?: View) => {
       const canvas = opts.current.canvasRef.current;
@@ -73,12 +86,25 @@ export function useLiveLoop(options: Options) {
         if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
       }
       const t0 = performance.now();
-      const hands = detect(video);
+      const image = boost ? boost.frame(video, now) : video;
+      const hands = smoother.update(detect(video, image), now);
       const ms = performance.now() - t0;
       const s = stats.current;
       s.detectMs = s.detectMs ? s.detectMs * 0.9 + ms * 0.1 : ms;
       s.frames++;
-      opts.current.engine?.pushFrame(hands, video.videoWidth / Math.max(1, video.videoHeight), now);
+      const aspect = video.videoWidth / Math.max(1, video.videoHeight);
+      if (boost) {
+        s.light = boost.level;
+        s.gain = boost.gain;
+      }
+      const hint = framingHint(hands, aspect);
+      if (hint) {
+        s.framing = hint;
+        hintSince = now;
+      } else if (now - hintSince > HINT_HOLD_MS) {
+        s.framing = null;
+      }
+      opts.current.engine?.pushFrame(hands, aspect, now);
       onHands?.(hands, now);
       draw(hands, mirrored, now);
     };
@@ -140,6 +166,8 @@ export function useLiveLoop(options: Options) {
       cancelAnimationFrame(rafId);
       if (vfcId && video && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(vfcId);
       opts.current.engine?.reset();
+      smoother.reset();
+      stats.current.framing = null;
     };
   }, [cameraActive, engine, replay]);
 
@@ -148,6 +176,9 @@ export function useLiveLoop(options: Options) {
 
 export interface Snapshot extends Telemetry {
   detectMs: number;
+  light: LightLevel;
+  gain: number;
+  framing: FramingHint;
 }
 
 /**
@@ -165,6 +196,9 @@ export function useSnapshot(engine: SignEngine | null, stats: RefObject<LoopStat
         letter: { ...engine.telemetry.letter },
         word: { ...engine.telemetry.word },
         detectMs: stats.current?.detectMs ?? 0,
+        light: stats.current?.light ?? 'good',
+        gain: stats.current?.gain ?? 1,
+        framing: stats.current?.framing ?? null,
       });
     read();
     const id = window.setInterval(read, 1000 / hz);
