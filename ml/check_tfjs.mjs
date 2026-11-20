@@ -2,6 +2,7 @@
 //
 //   node ml/check_tfjs.mjs static
 //   node ml/check_tfjs.mjs dynamic
+//   node ml/check_tfjs.mjs <parity-name> <model-dir>
 //
 // Loads public/model/<name>/ exactly as the browser does (same library, CPU backend)
 // and compares against ml/runs/<name>_parity.json, written by the training script.
@@ -12,7 +13,8 @@ import * as tf from '@tensorflow/tfjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const name = process.argv[2] ?? 'static';
-const dir = join(here, '..', 'public', 'model', name);
+// Optional second argument: a model folder other than public/model/<name> (e.g. ensemble members).
+const dir = process.argv[3] ?? join(here, '..', 'public', 'model', name);
 
 export async function loadFromDisk(modelDir) {
   const json = JSON.parse(readFileSync(join(modelDir, 'model.json'), 'utf8'));

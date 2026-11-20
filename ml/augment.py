@@ -46,6 +46,7 @@ def augment(
     shift: float = 0.08,
     jitter: float = 0.012,
     drop_p: float = 0.0,
+    amplitude: float = 0.0,
 ):
     """
     Returns augmented copies of (hands, present).
@@ -62,6 +63,10 @@ def augment(
       jitter     Gaussian noise per landmark, in units of hand size
                  (imitates landmark detector noise).
       drop       a hand randomly disappears for a frame (detector miss).
+      amplitude  (sequences only) the wrist path is stretched or shrunk about
+                 its mean, so the movement gets bigger or smaller while the
+                 hands keep their size: different people sign the same word
+                 with larger or smaller motions.
     """
     hands = hands.astype(np.float32).copy()
     present = present.astype(np.float32).copy()
@@ -92,6 +97,16 @@ def augment(
     offset = _rand(rng, per_hand + (1, 3), -shift, shift)
     offset[..., 2] = 0
     hands = wrist + rel + offset * size
+
+    if time_axis and amplitude > 0:
+        # [B, T, 2, 3] wrist path, its mean over the present frames, then scale about that mean.
+        wrists = hands[..., 0, :]
+        weight = present[..., None]
+        mean = (wrists * weight).sum(1, keepdims=True) / np.maximum(weight.sum(1, keepdims=True), 1)
+        factor = 1 + _rand(rng, (lead[0], 1, 1, 1), -amplitude, amplitude)
+        delta = (mean + factor * (wrists - mean)) - wrists
+        delta[..., 2] = 0
+        hands = hands + delta[..., None, :]
 
     # Landmark noise (fresh for every frame). Depth is the noisiest coordinate.
     noise = rng.normal(0, jitter, hands.shape).astype(np.float32)

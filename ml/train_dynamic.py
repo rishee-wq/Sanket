@@ -137,8 +137,9 @@ def build_set(videos: Videos, ids: np.ndarray, background: int, rng, augmented: 
 class DynamicBatches(keras.utils.Sequence):
     """Re-cuts and re-augments every window at the start of each epoch."""
 
-    def __init__(self, videos, ids, num_classes, background, batch_size, seed):
+    def __init__(self, videos, ids, num_classes, background, batch_size, seed, aug=None):
         self.videos, self.ids, self.num_classes, self.background = videos, ids, num_classes, background
+        self.aug = aug or {"drop_p": 0.03}
         self.batch_size, self.rng = batch_size, np.random.default_rng(seed)
         self.on_epoch_end()
 
@@ -148,7 +149,7 @@ class DynamicBatches(keras.utils.Sequence):
         hands = np.concatenate([p[0] for p in parts])
         present = np.concatenate([p[1] for p in parts])
         y = np.concatenate([p[2] for p in parts])
-        hands, present = augment(hands, present, self.rng, time_axis=True, drop_p=0.03)
+        hands, present = augment(hands, present, self.rng, time_axis=True, **self.aug)
         perm = self.rng.permutation(len(y))
         self.x = sequence_features(hands, present)[perm]
         self.t = np.eye(self.num_classes, dtype=np.float32)[y[perm]]
@@ -174,6 +175,11 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--no-export", action="store_true")
+    parser.add_argument("--export-dir", default=None,
+                        help="export this model to public/model/<dir> (any architecture), e.g. dynamic_transformer")
+    parser.add_argument("--aug", choices=["standard", "strong"], default="strong",
+                        help="strong (default): wider angle/size/position/noise ranges plus movement amplitude, which "
+                             "raised accuracy on unseen signers from 62.2%% to 64.7%%; standard: the original recipe")
     parser.add_argument("--split", choices=["random", "session"], default="random",
                         help="random: per word, any video; session: hold out whole recording sessions (new people)")
     args = parser.parse_args()
@@ -194,7 +200,11 @@ def main():
     x_val, y_val = fixed_set(videos, va, background, 1)
     x_test, y_test = fixed_set(videos, te, background, 2)
     onehot = np.eye(len(labels), dtype=np.float32)
-    batches = DynamicBatches(videos, tr, len(labels), background, args.batch_size, args.seed)
+    strong = {"rotate_deg": 20.0, "tilt_deg": 18.0, "scale_range": 0.18, "shift": 0.12, "jitter": 0.018,
+              "drop_p": 0.05, "amplitude": 0.3}
+    batches = DynamicBatches(videos, tr, len(labels), background, args.batch_size, args.seed,
+                             strong if args.aug == "strong" else None)
+    run = f"{args.model}{'_session' if args.split == 'session' else ''}{'_standard' if args.aug == 'standard' else ''}"
 
     model = DYNAMIC_MODELS[args.model](len(labels))
     model.compile(
@@ -205,7 +215,7 @@ def main():
     model.summary(line_length=110)
 
     RUNS.mkdir(exist_ok=True)
-    ckpt = RUNS / f"dynamic_{args.model}{'_session' if args.split == 'session' else ''}.weights.h5"
+    ckpt = RUNS / f"dynamic_{run}.weights.h5"
     t0 = time.time()
     history = model.fit(
         batches,
@@ -220,8 +230,12 @@ def main():
     train_seconds = time.time() - t0
     model.load_weights(ckpt)
 
-    temperature = fit_temperature(model.predict(x_val, batch_size=256, verbose=0), y_val)
+    raw_val = model.predict(x_val, batch_size=256, verbose=0)
+    temperature = fit_temperature(raw_val, y_val)
     raw_test = model.predict(x_test, batch_size=256, verbose=0)
+    # Kept so ml/ensemble.py can score combinations on exactly the same windows.
+    np.savez_compressed(RUNS / f"dynamic_{run}_preds.npz", val=raw_val, y_val=y_val, test=raw_test,
+                        y_test=y_test, temperature=temperature)
     metrics = classification_metrics(apply_temperature(raw_test, temperature), y_test, labels)
     metrics["ece_uncalibrated"] = classification_metrics(raw_test, y_test, labels)["ece"]
     words = y_test != background
@@ -250,9 +264,17 @@ def main():
         "split": {"train": len(tr), "val": len(va), "test": len(te)},
         "test": {k: v for k, v in metrics.items() if k not in ("per_class", "confusion")},
     }
-    (RUNS / f"dynamic_{args.model}{'_session' if args.split == 'session' else ''}.json").write_text(json.dumps(summary, indent=2))
+    (RUNS / f"dynamic_{run}.json").write_text(json.dumps(summary, indent=2))
 
-    if args.model == "tcn" and not args.no_export:
+    if args.export_dir:
+        # An ensemble member: same input/output contract as the main model, its own temperature.
+        config = {"type": "dynamic", "frameSize": SEQ_FRAME_SIZE, "sequenceLength": SEQUENCE_LENGTH, "numHands": 2,
+                  "inputShape": [SEQUENCE_LENGTH, SEQ_FRAME_SIZE], "temperature": temperature,
+                  "background": BACKGROUND, "version": 2}
+        write_parity(model, x_test, args.export_dir)
+        export_tfjs(model, PUBLIC_MODEL / args.export_dir, labels, config, summary)
+
+    if args.model == "tcn" and not args.no_export and not args.export_dir:
         save_plots("dynamic_tcn", history, metrics, labels)
         baselines = {}
         for other in DYNAMIC_MODELS:

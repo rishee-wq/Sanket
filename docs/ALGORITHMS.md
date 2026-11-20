@@ -120,9 +120,12 @@ All augmentation is applied to the **raw landmarks**, and then the normal featur
 | Random window boundaries (words) | Starting or stopping the window early or late |
 | Time warping (words) | Signing faster or slower part-way |
 | Dropping a hand for a frame (words) | A detection miss from motion blur |
+| Movement amplitude, ±30% (words) | Another person making the same sign with bigger or smaller motions: the wrist path is scaled about its mean while the hands keep their size |
 | Mixup (optional, `--mixup`) | Blends two samples and their labels; smooths decision boundaries |
 
 Windows are re-cut and re-augmented **every epoch**, so the network never sees the same sample twice.
+
+The words model is trained with the **signer-style** settings (`--aug strong`, the default): rotation up to ±20°, hand tilt ±18°, scale ±18%, shift ±12% of hand size, jitter 1.8% of hand size, 5% dropped hands, and the amplitude change. Measured on unseen signers (section 4), this raised the TCN from 62.2% to 64.7% on the test sessions and from 66.3% to 71.4% on the validation sessions. The original settings are `--aug standard`.
 
 ### 3.9 Regularisation and optimisation
 
@@ -164,11 +167,27 @@ The first version looked fine in a quick test and failed this one: almost any mo
 
 The hand-shape variant (built on the letters CNN) uses the same rule but has not been measured separately.
 
-### 3.12 What we looked at but do not ship
+### 3.12 Architectures compared, and what we do not ship
 
-- **LSTM / GRU**: trained as baselines (section 4). The BiLSTM is slightly more accurate than the TCN on this test set and four times slower.
-- **R-CNN on images**: explained in 3.6. The idea is used in time; the image version is unnecessary once landmarks exist.
-- **Transformers**: 928 training videos are too few to justify one over a small TCN.
+Five sequence models were trained on exactly the same held-out-signer split (section 4) and scored with `ml/ensemble.py`:
+
+| Model | Idea | Validation (unseen signers) | Test (unseen signers) | Test top-3 |
+| --- | --- | --- | --- | --- |
+| **TCN, signer-style augmentation (ships)** | dilated 1-D convolutions + attention pooling | **71.4%** | **64.7%** | 80.7% |
+| GRU, signer-style augmentation | gated recurrent unit | 65.9% | 63.6% | 81.5% |
+| TCN | | 66.3% | 62.2% | 80.0% |
+| GRU | | 64.3% | 65.5% | 81.5% |
+| BiLSTM | LSTM reading the window forwards and backwards | 66.7% | 60.0% | 81.1% |
+| Inception-TCN (`dynamic_inception`) | GoogLeNet's Inception module along time: parallel 1-, 3- and 5-wide convolutions and a pooled branch, concatenated, with growing dilation and a residual shortcut | 65.9% | 60.0% | 82.5% |
+| Transformer (`dynamic_transformer`) | 3 pre-norm encoder blocks, 4-head self-attention built from Dense/Dot/Softmax layers (TF.js has no attention layer), convolutional positional encoding | 63.9% | 57.8% | 80.7% |
+
+Word accuracy on the 275 test videos of sessions no model was trained on; one video is about 0.4 points.
+
+**Ensembles (soft voting).** `ml/ensemble.py` averages the members' calibrated probabilities for all 127 combinations of the seven runs, chooses on the validation sessions and only then reads the test score. The chosen ensemble (Inception-TCN + both TCNs + Transformer) reaches 71.8% / 64.4%: no better than the single signer-style TCN, at four times the cost. Averaging all five standard models (no selection at all) gives 62.9% top-1 and 85.1% top-3, so ensembles mainly help the suggestion list. The browser engine supports ensembles (`config.ensemble` in `public/model/dynamic/config.json`, averaged in `SignModel`), but none ships because none beat the single model on the validation sessions.
+
+**What the comparison says.** On unseen signers the architectures sit within a few videos of each other, while changing the *training data* (signer-style augmentation) moved accuracy by 2.5 to 5 points. With about five signers per word in INCLUDE, the limit is signer variety, not model capacity. More signers, and letting each user teach their own version of a sign (section 3.11), are the levers that work.
+
+**Image models.** AlexNet, GoogLeNet and Mask R-CNN take pixels. Sanket's models take MediaPipe's 21 landmarks per hand, which already removes background and most lighting effects and runs in the browser. Training an image CNN from about 1,300 videos would overfit to the few signers and rooms in INCLUDE far more than the landmark models do, and a frame-by-frame image network is too slow for live use in a browser. Their ideas are used where they fit: Inception's multi-scale branches (the Inception-TCN above), and Mask R-CNN's region proposals, background class and non-maximum suppression, applied in time to find where a sign starts and ends (section 3.6).
 
 ---
 
@@ -181,18 +200,19 @@ All numbers are on the held-out test split and are written by the training scrip
 | Architecture | Word accuracy | With background windows | Top-3 | Macro F1 | Parameters | Keras CPU, 1 window |
 | --- | --- | --- | --- | --- | --- | --- |
 | Bidirectional LSTM | 93.7% | 95.7% | 98.6% | 91.8% | 397,031 | 325 ms |
-| **Dilated TCN + attention (ships)** | **92.1%** | 94.2% | 97.1% | 91.5% | 435,696 | **78 ms** |
+| **Dilated TCN + attention, signer-style augmentation (ships)** | **94.2%** | 96.0% | 97.8% | 93.5% | 435,696 | **45 ms** |
+| Dilated TCN + attention, original augmentation | 92.1% | 94.2% | 97.1% | 91.5% | 435,696 | 78 ms |
 | GRU | 91.0% | 93.9% | 97.5% | 90.5% | 125,767 | 187 ms |
 | MLP on the flattened window | 87.8% | 91.7% | 96.4% | 88.0% | 2,381,383 | 20 ms |
 
 How to read this honestly:
 
-- The BiLSTM beats the TCN by 1.6 points, which is **3 videos out of 189**. That is inside the noise of a test set this small. The TCN is about four times faster, which matters more for a real-time app, so it is the one that ships.
+- With the original augmentation the BiLSTM beat the TCN by 1.6 points, which is **3 videos out of 189**, inside the noise of a test set this small. With signer-style augmentation the TCN reaches 94.2% and is about four times faster than the BiLSTM, which matters for a real-time app. On unseen signers all architectures sit within a few videos of each other (section 3.12).
 - Both sequence-aware models beat the MLP, which ignores time order, by 4 to 6 points. Modelling the sequence is worth it.
 - "Keras CPU" is single-sample eager execution in Python, useful only for comparing architectures. Browser timings are measured live on the Model lab page.
 - For reference, the INCLUDE paper reports 94.5% on its 50-word subset with a different split, so these numbers are in the expected range. They are not directly comparable.
 
-Calibration (TCN): expected calibration error 5.9% before temperature scaling, 2.5% after (T = 0.84).
+Calibration (shipped TCN): expected calibration error 7.3% before temperature scaling, 2.7% after (T = 0.82).
 
 ### Words on people the model has not seen (held-out recording sessions)
 
@@ -200,8 +220,10 @@ The table above uses a random split by video, and INCLUDE has every signer recor
 
 | Split | Word accuracy | With background windows | Top-3 | Macro F1 | Training videos |
 | --- | --- | --- | --- | --- | --- |
-| Random by video (shipped model's report) | 92.1% | 94.2% | 97.1% | 91.5% | 928 |
-| **Held-out sessions (new people)** | **62.2%** | 73.8% | 86.2% | 59.2% | 776 |
+| Random by video, original augmentation | 92.1% | 94.2% | 97.1% | 91.5% | 928 |
+| Random by video, signer-style augmentation (shipped model's report) | 94.2% | 96.0% | 97.8% | 93.5% | 928 |
+| Held-out sessions (new people), original augmentation | 62.2% | 73.8% | 86.2% | 59.2% | 776 |
+| **Held-out sessions (new people), signer-style augmentation (ships)** | **64.7%** | 75.6% | 86.7% | 61.3% | 776 |
 
 How to read this honestly:
 

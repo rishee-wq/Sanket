@@ -17,6 +17,12 @@ export interface ModelConfig {
   temperature: number;
   /** Label of the "no sign here" class; only dynamic models have it. */
   background?: string;
+  /**
+   * Optional ensemble: sibling folders under public/model/ whose models take the
+   * same input and labels. Their calibrated probabilities are averaged with this
+   * model's (soft voting). This model still provides the embedding for taught signs.
+   */
+  ensemble?: string[];
   version: number;
 }
 
@@ -35,6 +41,8 @@ export class SignModel {
   builtin: Float32Array | null = null;
   readonly labels: readonly string[];
   readonly config: ModelConfig;
+  /** Other models whose probabilities are averaged with this one's (see ModelConfig.ensemble). */
+  members: SignModel[] = [];
 
   constructor(tf: typeof tfType, model: tfType.LayersModel, labels: readonly string[], config: ModelConfig) {
     this.tf = tf;
@@ -64,7 +72,21 @@ export class SignModel {
     });
     const probs = (await output.data()) as Float32Array;
     output.dispose();
-    return calibrate(probs, this.classes, this.config.temperature);
+    return this.average(calibrate(probs, this.classes, this.config.temperature), input, batch);
+  }
+
+  /**
+   * Soft voting: the mean of this model's and every member's calibrated
+   * probabilities. All members run at once, so the wait is the slowest one, not the sum.
+   */
+  private async average(own: Float32Array, input: Float32Array, batch: number): Promise<Float32Array> {
+    if (!this.members.length) return own;
+    const others = await Promise.all(this.members.map((m) => m.predict(input, batch)));
+    const out = new Float32Array(own.length);
+    for (const p of [own, ...others]) for (let i = 0; i < out.length; i++) out[i] += p[i];
+    const n = others.length + 1;
+    for (let i = 0; i < out.length; i++) out[i] /= n;
+    return out;
   }
 
   /**
@@ -95,7 +117,8 @@ export class SignModel {
       n = Math.sqrt(n) || 1;
       for (let i = 0; i < size; i++) embeddings[r * size + i] = raw[r * size + i] / n;
     }
-    return { probs: calibrate(probs, this.classes, this.config.temperature), embeddings, size };
+    const calibrated = calibrate(probs, this.classes, this.config.temperature);
+    return { probs: await this.average(calibrated, input, batch), embeddings, size };
   }
 
   /** Compiles the GPU programs before the first real frame. */
@@ -105,6 +128,7 @@ export class SignModel {
 
   dispose() {
     this.model.dispose();
+    this.members.forEach((m) => m.dispose());
   }
 }
 
@@ -149,6 +173,14 @@ export async function loadSignModel(tf: typeof tfType, baseUrl: string): Promise
     tf.loadLayersModel(`${baseUrl}model.json`),
   ]);
   const signModel = new SignModel(tf, model, labels, config);
+  if (config.ensemble?.length) {
+    // Members live next to this model's folder: /model/dynamic/ -> /model/dynamic_transformer/ ...
+    const root = baseUrl.replace(/[^/]+\/$/, '');
+    signModel.members = await Promise.all(config.ensemble.map((dir) => loadSignModel(tf, `${root}${dir}/`)));
+    for (const m of signModel.members) {
+      if (m.labels.join('|') !== labels.join('|')) throw new Error(`ensemble member ${m.config.type} has different labels`);
+    }
+  }
   // Optional: only "Teach your own sign" needs it.
   try {
     const protos = await fetchJson<{ size: number; vectors: number[][] }>(`${baseUrl}prototypes.json`);

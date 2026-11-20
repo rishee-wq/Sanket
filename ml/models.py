@@ -2,8 +2,8 @@
 Model architectures.
 
 Built with tf_keras (Keras 2) because TensorFlow.js loads Keras 2 "layers"
-models directly. Only layers that TF.js supports are used in the two models that
-ship to the browser (static_cnn, dynamic_tcn). The baselines exist to compare
+models directly. Only layers that TF.js supports are used in the models that can
+ship to the browser (static_cnn and every dynamic model except the MLP baseline). The baselines exist to compare
 against in the report.
 """
 from __future__ import annotations
@@ -192,5 +192,124 @@ def dynamic_mlp(num_classes: int) -> keras.Model:
     return keras.Model(inp, out, name="dynamic_mlp")
 
 
+# ---------------------------------------------------------------------------
+# Transformer and Inception-TCN. Built only from layers TensorFlow.js supports
+# (Dense, Conv1D, Dot, Softmax, LayerNormalization, Concatenate, Add,
+# MaxPooling1D), so they can ship to the browser like the TCN.
+# ---------------------------------------------------------------------------
+
+
+def self_attention(x, d: int, heads: int, name: str):
+    """
+    Multi-head scaled dot-product self-attention (Vaswani et al., 2017), written
+    out with plain layers because TensorFlow.js has no MultiHeadAttention layer.
+
+    For each head h: Q = x Wq, K = x Wk, V = x Wv (Dense layers, d/heads wide),
+    scores = Q K^T (a batched Dot over the feature axis, T x T), weights =
+    softmax over the keys, context = weights V. The heads are concatenated and
+    mixed by a final Dense. Every frame can look at every other frame in one
+    step, so a sign's start and end are compared directly.
+
+    The 1/sqrt(d_k) scale is folded into Wq at initialisation (variance 1/d_k),
+    which keeps the softmax unsaturated at the start of training.
+    """
+    dk = d // heads
+    contexts = []
+    for h in range(heads):
+        q = layers.Dense(dk, kernel_initializer=keras.initializers.VarianceScaling(1.0 / dk), name=f"{name}_q{h}")(x)
+        k = layers.Dense(dk, name=f"{name}_k{h}")(x)
+        v = layers.Dense(dk, name=f"{name}_v{h}")(x)
+        scores = layers.Dot(axes=(2, 2), name=f"{name}_scores{h}")([q, k])
+        weights = layers.Softmax(axis=-1, name=f"{name}_weights{h}")(scores)
+        contexts.append(layers.Dot(axes=(2, 1), name=f"{name}_context{h}")([weights, v]))
+    x = layers.Concatenate(name=f"{name}_heads")(contexts) if heads > 1 else contexts[0]
+    return layers.Dense(d, name=f"{name}_out")(x)
+
+
+def transformer_block(x, d: int, heads: int, ff: int, drop: float, name: str):
+    """Pre-norm encoder block: x + Attention(LN(x)), then x + FFN(LN(x))."""
+    h = layers.LayerNormalization(epsilon=1e-6, name=f"{name}_ln1")(x)
+    h = self_attention(h, d, heads, f"{name}_mha")
+    h = layers.Dropout(drop, name=f"{name}_drop1")(h)
+    x = layers.Add(name=f"{name}_add1")([x, h])
+    h = layers.LayerNormalization(epsilon=1e-6, name=f"{name}_ln2")(x)
+    h = layers.Dense(ff, activation="relu", name=f"{name}_ff1")(h)
+    h = layers.Dense(d, name=f"{name}_ff2")(h)
+    h = layers.Dropout(drop, name=f"{name}_drop2")(h)
+    return layers.Add(name=f"{name}_add2")([x, h])
+
+
+def dynamic_transformer(num_classes: int, d: int = 96, heads: int = 4, depth: int = 3) -> keras.Model:
+    """
+    Transformer encoder over the 32-frame window.
+
+    Position is given by a convolutional positional encoding (Chu et al., 2021):
+    a width-5 Conv1D added to the frame embeddings. Its zero padding tells
+    frames near the ends of the window where they are, and it needs no extra
+    input, unlike a learned position table.
+    """
+    inp = keras.Input((SEQUENCE_LENGTH, SEQ_FRAME_SIZE), name="features")
+    x = layers.Dense(d, name="embed")(inp)
+    pos = layers.Conv1D(d, 5, padding="same", name="pos_conv")(x)
+    x = layers.Add(name="pos_add")([x, pos])
+    x = layers.Dropout(0.1, name="embed_drop")(x)
+    for i in range(depth):
+        x = transformer_block(x, d, heads, 2 * d, 0.15, f"enc{i + 1}")
+    x = layers.LayerNormalization(epsilon=1e-6, name="enc_ln")(x)
+    x = attention_pool(x, "attn")
+    x = layers.Dropout(0.4, name="drop")(x)
+    x = layers.Dense(160, activation="relu", name="embedding")(x)
+    x = layers.Dropout(0.3, name="drop2")(x)
+    out = layers.Dense(num_classes, activation="softmax", name="probs")(x)
+    return keras.Model(inp, out, name="dynamic_transformer")
+
+
+def inception_block(x, filters: int, dilation: int, name: str):
+    """
+    GoogLeNet's Inception module, turned to run along time. Four branches see
+    the same input at different temporal scales and are concatenated:
+      1x1 conv            (this frame only)
+      3-wide conv         (short motion)
+      5-wide conv         (longer motion)
+      3-wide max pool + 1x1 conv (the strongest response nearby)
+    The dilation widens all of them as the network gets deeper. A residual
+    shortcut (ResNet) is added around the module.
+    """
+    b = filters // 4
+    b1 = conv_bn_relu(x, b, 1, f"{name}_b1", conv=layers.Conv1D)
+    b3 = conv_bn_relu(x, b, 3, f"{name}_b3", conv=layers.Conv1D, dilation=dilation)
+    b5 = conv_bn_relu(x, b, 5, f"{name}_b5", conv=layers.Conv1D, dilation=dilation)
+    bp = layers.MaxPooling1D(3, strides=1, padding="same", name=f"{name}_pool")(x)
+    bp = conv_bn_relu(bp, b, 1, f"{name}_bp", conv=layers.Conv1D)
+    y = layers.Concatenate(name=f"{name}_cat")([b1, b3, b5, bp])
+    y = layers.SpatialDropout1D(0.15, name=f"{name}_drop")(y)
+    if x.shape[-1] != filters:
+        x = layers.Conv1D(filters, 1, use_bias=False, name=f"{name}_proj_conv")(x)
+        x = layers.BatchNormalization(name=f"{name}_proj_bn")(x)
+    y = layers.Add(name=f"{name}_add")([x, y])
+    return layers.ReLU(name=f"{name}_out")(y)
+
+
+def dynamic_inception(num_classes: int, width: int = 96) -> keras.Model:
+    """Inception-TCN: a temporal CNN whose blocks are Inception modules with growing dilation."""
+    inp = keras.Input((SEQUENCE_LENGTH, SEQ_FRAME_SIZE), name="features")
+    x = conv_bn_relu(inp, width, 1, "embed", conv=layers.Conv1D)
+    for i, (filters, dilation) in enumerate(((width, 1), (width, 2), (128, 4), (128, 8))):
+        x = inception_block(x, filters, dilation, f"inc{i + 1}")
+    x = attention_pool(x, "attn")
+    x = layers.Dropout(0.4, name="drop")(x)
+    x = layers.Dense(160, activation="relu", name="embedding")(x)
+    x = layers.Dropout(0.3, name="drop2")(x)
+    out = layers.Dense(num_classes, activation="softmax", name="probs")(x)
+    return keras.Model(inp, out, name="dynamic_inception")
+
+
 STATIC_MODELS = {"cnn": static_cnn, "mlp": static_mlp}
-DYNAMIC_MODELS = {"tcn": dynamic_tcn, "bilstm": dynamic_bilstm, "gru": dynamic_gru, "mlp": dynamic_mlp}
+DYNAMIC_MODELS = {
+    "tcn": dynamic_tcn,
+    "transformer": dynamic_transformer,
+    "inception": dynamic_inception,
+    "bilstm": dynamic_bilstm,
+    "gru": dynamic_gru,
+    "mlp": dynamic_mlp,
+}
