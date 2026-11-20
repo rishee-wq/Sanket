@@ -137,8 +137,9 @@ def dynamic_tcn(num_classes: int, width: int = 96) -> keras.Model:
     Temporal convolutional network. Conv1D kernels slide along TIME.
 
     The dilation rate doubles block by block (1, 2, 4, 8), so the receptive
-    field grows exponentially: 3 -> 7 -> 15 -> 31 -> 63 frames after only four
-    blocks, enough to see the whole 32-frame window, with far fewer weights
+    field grows exponentially. Each block has two kernel-3 convolutions, each
+    adding (3 - 1) * dilation frames: 1 -> 5 -> 13 -> 29 -> 61 frames after
+    four blocks, enough to see the whole 32-frame window, with far fewer weights
     than a wide kernel and none of the step-by-step recurrence of an LSTM.
     """
     inp = keras.Input((SEQUENCE_LENGTH, SEQ_FRAME_SIZE), name="features")

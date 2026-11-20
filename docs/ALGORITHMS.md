@@ -76,7 +76,7 @@ This is the core CNN idea: *the same small set of weights is reused at every pos
 
 A word is a window of 32 frames × 136 features. Here `Conv1D` kernels slide along **time**.
 
-With kernel size 3, one layer sees 3 frames. To see the whole window we use **dilation**: the kernel skips frames, with the gap doubling in each block (1, 2, 4, 8). The receptive field grows exponentially, 3 → 7 → 15 → 31 → 63 frames after four blocks, so the last block sees the entire sign, with far fewer weights than a wide kernel.
+With kernel size 3, one layer sees 3 frames. To see the whole window we use **dilation**: the kernel skips frames, with the gap doubling in each block (1, 2, 4, 8). Each layer with kernel k and dilation d widens the receptive field by (k − 1)·d frames, and every residual block has two such convolutions, so a block adds 2·2·d. The receptive field grows 1 → 5 → 13 → 29 → **61 frames** after the four blocks (1 + 4·(1 + 2 + 4 + 8) = 61), more than the 32-frame window, so the last block sees the entire sign, with far fewer weights than a wide kernel.
 
 Compared with an LSTM, every time step is computed in parallel rather than one after another, which is why the TCN is the fastest of the sequence models we compared (section 4).
 
