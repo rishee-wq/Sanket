@@ -5,8 +5,10 @@ import wasmBinaryPath from '@mediapipe/tasks-vision/vision_wasm_internal.wasm?ur
 import { useCallback, useEffect, useState } from 'react';
 import type { DetectedHand } from '../engine/features';
 
-const MODEL_URL =
-  'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+// Served from public/ so the app works with no internet. It is Google's pretrained MediaPipe
+// hand landmarker (float16, version 1), downloaded unchanged from
+// storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+const MODEL_URL = `${import.meta.env.BASE_URL}model/mediapipe/hand_landmarker.task`;
 
 // One HandLandmarker for the whole app, shared by every camera view.
 let landmarkerPromise: Promise<HandLandmarker> | null = null;
