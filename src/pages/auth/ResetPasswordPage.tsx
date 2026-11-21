@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
       <AuthLayout title="Link expired" subtitle="This reset link is no longer valid. Reset links work once and expire after an hour.">
         <Link
           to="/forgot-password"
-          className="inline-flex rounded-md bg-signal border-2 border-ink px-6 py-3 text-[15px] font-semibold text-[#0a0400]"
+          className="inline-flex rounded-md bg-signal border-2 border-ink px-6 py-3 text-[15px] font-semibold text-[#241612]"
         >
           Send a new link
         </Link>

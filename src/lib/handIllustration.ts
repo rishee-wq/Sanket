@@ -9,7 +9,7 @@
  */
 import type { DetectedHand } from '../engine/features';
 
-const INK = '#17140f';
+const INK = '#241612';
 export const SKIN_TONES = ['#f1c9a5', '#dba47a', '#b97c54', '#8a5636'];
 
 const PALM = [0, 1, 5, 9, 13, 17];

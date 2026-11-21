@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SanketMark } from './Logo';
 
-const WORD = 'SANKET';
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const FLIP_MS = 55;
-const KEY = 'sanket.intro.v2';
+const KEY = 'sanket.intro.v4';
+const LEAVE_AT = 2300;
+const LEAVE_MS = 560;
 
-/** Shows the intro once per browser session, never with reduced motion, never for a returning tab. */
+/** Shows the intro once per browser session, never with reduced motion. */
 export function shouldShowIntro(): boolean {
   try {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
@@ -18,28 +16,13 @@ export function shouldShowIntro(): boolean {
   return true;
 }
 
-/** One split-flap tile: spins through letters, then lands on its own. */
-const Tile: React.FC<{ final: string; tick: number; landAt: number }> = ({ final, tick, landAt }) => {
-  const landed = tick >= landAt;
-  const ch = landed ? final : ALPHABET[(tick * 7 + landAt * 13) % ALPHABET.length];
-  return (
-    <span className="relative grid h-[clamp(64px,13vw,128px)] w-[clamp(46px,9.5vw,92px)] place-items-center overflow-hidden rounded-[5px] border-2 border-ink bg-night">
-      <span key={landed ? 'final' : tick} className={`display flap text-[clamp(52px,11vw,108px)] ${landed ? 'text-signal' : 'text-paper/80'}`}>
-        {ch}
-      </span>
-      <span className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 bg-ink" aria-hidden="true" />
-    </span>
-  );
-};
-
 /**
- * Startup animation in the style of a railway departure board: the name flips
- * into place letter by letter, the mark's fingers rise and its waves "speak",
- * a hazard-stripe bar fills, and the board lifts away. About 2 seconds; any
- * key or click skips it.
+ * Startup animation: the henna-brown tile lands, सं is written onto it left to
+ * right like a pen stroke, three sound waves ripple out of it (the sign
+ * speaks), the name rises, and an iris opens onto the page. About 2.3 s;
+ * any click or key skips it.
  */
 export const Intro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
-  const [tick, setTick] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const done = useRef(false);
 
@@ -47,45 +30,72 @@ export const Intro: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     if (done.current) return;
     done.current = true;
     setLeaving(true);
-    window.setTimeout(onDone, 420);
+    window.setTimeout(onDone, LEAVE_MS);
   };
 
   useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), FLIP_MS);
-    const out = window.setTimeout(finish, 2100);
+    const out = window.setTimeout(finish, LEAVE_AT);
     const skip = () => finish();
     window.addEventListener('keydown', skip);
     return () => {
-      window.clearInterval(id);
       window.clearTimeout(out);
       window.removeEventListener('keydown', skip);
     };
   }, []);
 
-  const landAt = (i: number) => 6 + i * 3;
-  const all = tick >= landAt(WORD.length - 1);
-
   return (
     <div
       role="presentation"
       onClick={finish}
-      className={`fixed inset-0 z-[200] flex cursor-pointer flex-col items-center justify-center bg-signal transition-transform duration-[420ms] ease-[cubic-bezier(.7,0,.3,1)] ${leaving ? '-translate-y-full' : ''}`}
+      className={`intro fixed inset-0 z-[200] flex cursor-pointer flex-col items-center justify-center bg-paper text-ink ${leaving ? 'intro-leave' : ''}`}
     >
-      <div className="flex items-center gap-[clamp(10px,2vw,22px)]">
-        <SanketMark animate className="h-[clamp(64px,13vw,128px)] w-[clamp(64px,13vw,128px)]" />
-        <div className="flex gap-[clamp(3px,0.6vw,6px)]" aria-label="Sanket">
-          {[...WORD].map((ch, i) => (
-            <Tile key={i} final={ch} tick={tick} landAt={landAt(i)} />
+      <div className="intro-grid absolute inset-0" aria-hidden="true" />
+      <svg viewBox="0 0 220 120" className="relative h-[min(30vh,210px)] w-auto overflow-visible" aria-hidden="true">
+        <defs>
+          <clipPath id="intro-pen">
+            <rect className="intro-pen" x="10" y="0" width="100" height="120" />
+          </clipPath>
+        </defs>
+        <rect className="intro-tile" width="120" height="120" rx="30" fill="#241612" stroke="#4a2c22" strokeWidth="2" />
+        <text
+          x="58"
+          y="84"
+          textAnchor="middle"
+          fontFamily="'Anek Devanagari', 'Nirmala UI', 'Mangal', sans-serif"
+          fontWeight="800"
+          fontSize="66"
+          fill="#f26b3a"
+          clipPath="url(#intro-pen)"
+        >
+          सं
+        </text>
+        <g fill="none" strokeLinecap="round">
+          {[
+            ['M92 46a16 16 0 0 1 0 26', '#f7d9c4', 7, 820],
+            ['M134 34a34 34 0 0 1 0 50', '#241612', 6, 960],
+            ['M160 22a52 52 0 0 1 0 74', '#f26b3a', 5, 1100],
+            ['M186 10a70 70 0 0 1 0 98', '#f26b3a', 4, 1240],
+          ].map(([d, color, width, delay]) => (
+            <path key={d as string} className="intro-wave" d={d as string} stroke={color as string} strokeWidth={width as number} style={{ animationDelay: `${delay}ms` }} />
           ))}
-        </div>
+        </g>
+      </svg>
+
+      <div className="relative mt-6 flex flex-col items-center">
+        <p className="flex text-[clamp(56px,10vw,104px)] font-extrabold leading-none tracking-[-0.03em] [font-variation-settings:'wdth'_92]" aria-label="Sanket">
+          {[...'Sanket'].map((ch, i) => (
+            <span key={i} className="intro-letter" style={{ animationDelay: `${1250 + i * 45}ms` }}>
+              {ch}
+            </span>
+          ))}
+        </p>
+        <p className="intro-fade deva mt-1 text-[clamp(22px,3.6vw,34px)] font-semibold text-signal-deep" style={{ animationDelay: "1600ms" }}>
+          संकेत · जहाँ हाथ बोलते हैं
+        </p>
+        <p className="intro-fade tag mt-5 text-mute" style={{ animationDelay: '1750ms' }}>
+          Indian Sign Language → text and speech · tap to skip
+        </p>
       </div>
-      <p className={`deva mt-5 text-[clamp(26px,4.6vw,46px)] font-extrabold transition-all duration-300 ${all ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}>
-        संकेत · जहाँ हाथ बोलते हैं
-      </p>
-      <div className="mt-6 h-4 w-[min(420px,70vw)] overflow-hidden rounded-[3px] border-2 border-ink bg-card">
-        <div className="hazard hazard-live h-full" style={{ width: `${Math.min(100, (tick / 36) * 100)}%` }} />
-      </div>
-      <p className="tag mt-3 text-ink/60">Where hands speak · tap to skip</p>
     </div>
   );
 };

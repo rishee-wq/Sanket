@@ -6,6 +6,8 @@ University Deep Learning course project (UPES, CSAI3027P): a sign language recog
 
 **Read [`docs/ALGORITHMS.md`](docs/ALGORITHMS.md) for every deep learning concept, data structure and algorithm used, with results.**
 
+Presenting the project? [`docs/PBL_GUIDE.md`](docs/PBL_GUIDE.md) explains it end to end, with a question bank.
+
 ## What's in the app
 
 - **Translate** (`/app`): the camera with a live hand overlay, a "now reading" board with the top three candidates, and a sentence that builds as you sign. Three modes: Words (70 word signs), Letters (A-Z and 1-9 for spelling), and Auto. Suggestions complete the word you are spelling and predict the next word. Speak says the sentence aloud; Caption speech turns the other person's voice into text.

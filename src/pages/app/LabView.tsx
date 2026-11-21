@@ -80,10 +80,10 @@ const Curves: React.FC<{ title: string; train: number[]; val: number[]; max?: nu
       </figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" role="img" aria-label={title}>
         {[0, 0.25, 0.5, 0.75, 1].map((g) => (
-          <line key={g} x1="0" x2={W} y1={H * g} y2={H * g} stroke="#17140f" strokeOpacity=".12" />
+          <line key={g} x1="0" x2={W} y1={H * g} y2={H * g} stroke="#241612" strokeOpacity=".12" />
         ))}
-        <polyline points={line(train)} fill="none" stroke="#17140f" strokeWidth="2.5" />
-        <polyline points={line(val)} fill="none" stroke="#1b3fb5" strokeWidth="2.5" />
+        <polyline points={line(train)} fill="none" stroke="#241612" strokeWidth="2.5" />
+        <polyline points={line(val)} fill="none" stroke="#2e7d4f" strokeWidth="2.5" />
       </svg>
       <div className="num mt-1 flex justify-between text-[11px] text-mute">
         <span>epoch 1</span>
@@ -107,7 +107,7 @@ const Confusion: React.FC<{ report: Report }> = ({ report }) => {
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (!ctx) return;
-    ctx.fillStyle = '#fffcf4';
+    ctx.fillStyle = '#fffaf3';
     ctx.fillRect(0, 0, n * cell, n * cell);
     confusion.forEach((row, r) => {
       const total = row.reduce((a, b) => a + b, 0) || 1;
@@ -115,7 +115,7 @@ const Confusion: React.FC<{ report: Report }> = ({ report }) => {
         if (!v) return;
         const share = v / total;
         // Diagonal (correct) in ink, mistakes in alarm red so they stand out.
-        ctx.fillStyle = r === c ? `rgba(23,20,15,${0.12 + 0.88 * share})` : `rgba(212,42,23,${0.35 + 0.65 * share})`;
+        ctx.fillStyle = r === c ? `rgba(36,22,18,${0.12 + 0.88 * share})` : `rgba(212,42,23,${0.35 + 0.65 * share})`;
         ctx.fillRect(c * cell, r * cell, cell - 1, cell - 1);
       });
     });

@@ -171,7 +171,7 @@ export const SosView: React.FC<{ triggered: boolean; onExit: () => void }> = ({ 
         >
           <span aria-hidden="true" className="hazard hazard-live absolute inset-x-0 bottom-0" style={{ height: `${hold * 100}%` }} />
           <span className="relative block p-6">
-            <span className="display block text-[clamp(88px,14vw,150px)]" style={{ textShadow: hold ? '0 0 0 #17140f, 3px 3px 0 #17140f' : undefined }}>
+            <span className="display block text-[clamp(88px,14vw,150px)]" style={{ textShadow: hold ? '0 0 0 #241612, 3px 3px 0 #241612' : undefined }}>
               SOS
             </span>
             <span className="tag mt-2 inline-block border-2 border-white bg-ink px-2 py-1 text-white">{hold ? 'Keep holding…' : 'Press and hold 1.5 s'}</span>

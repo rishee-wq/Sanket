@@ -1,27 +1,29 @@
 @import "tailwindcss";
 
 /*
- * Sanket design system: "station board".
- * Indian railway name boards are black type on signal yellow, in two scripts,
- * built to be read at a glance from a moving train. The app borrows that:
- * paper and ink, one loud yellow, hard 2px rules, condensed capitals for
- * anything that must be read fast, and no blur, glow or gradients.
+ * Sanket design system: "mehndi".
+ * Henna brown for ink, warm cream paper, terracotta for whatever the model is
+ * reading right now (the same colour as the hand skeleton), leaf green for
+ * links and secondary marks, hard 2px rules and condensed capitals for
+ * anything that must be read fast. No blue anywhere. The token names (signal,
+ * rail, ...) are older than the palette and kept so the app code stays put.
  */
 @theme {
   --font-sans: "Anek Latin", "Segoe UI", system-ui, sans-serif;
   --font-deva: "Anek Devanagari", "Nirmala UI", "Anek Latin", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --font-serif: "Instrument Serif", Georgia, serif;
 
-  --color-paper: #f3eee2;
-  --color-card: #fffcf4;
-  --color-ink: #17140f;
-  --color-mute: #6c6557;
-  --color-signal: #ffc400;
-  --color-signal-deep: #e0a800;
-  --color-rail: #1b3fb5;
-  --color-alarm: #d42a17;
-  --color-go: #0a7a44;
-  --color-night: #100f0c;
+  --color-paper: #f7f0e6;
+  --color-card: #fffaf3;
+  --color-ink: #241612;
+  --color-mute: #7a675b;
+  --color-signal: #f26b3a;
+  --color-signal-deep: #d4521f;
+  --color-rail: #2e7d4f;
+  --color-alarm: #c81e2a;
+  --color-go: #2e7d4f;
+  --color-night: #170d0a;
 
   --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1);
 }
@@ -161,7 +163,7 @@ button:disabled {
   }
 
   .btn-ink:hover:not(:disabled) {
-    background: #2b2720;
+    background: #3a241d;
   }
 
   .btn-signal {
@@ -169,7 +171,7 @@ button:disabled {
   }
 
   .btn-signal:hover:not(:disabled) {
-    background: #ffd23d;
+    background: #f58a5f;
   }
 
   .btn-alarm {
@@ -188,7 +190,7 @@ button:disabled {
   }
 
   .btn-bare:hover:not(:disabled) {
-    background: rgb(23 20 15 / 0.07);
+    background: rgb(36 22 18 / 0.07);
   }
 
   .btn-sm {
@@ -231,7 +233,7 @@ button:disabled {
   }
 
   .field::placeholder {
-    color: rgb(23 20 15 / 0.38);
+    color: rgb(36 22 18 / 0.38);
   }
 
   .field:focus {
@@ -248,7 +250,7 @@ button:disabled {
 
   /* Ticket-paper dot grid for large empty areas. */
   .dots {
-    background-image: radial-gradient(rgb(23 20 15 / 0.16) 1px, transparent 1.2px);
+    background-image: radial-gradient(rgb(36 22 18 / 0.16) 1px, transparent 1.2px);
     background-size: 14px 14px;
   }
 
@@ -339,20 +341,33 @@ button:disabled {
   }
 }
 
-/* Logo mark: fingers rise one by one, then the two waves ripple out. */
-@keyframes finger-rise {
+/* Logo mark: the tile lands, सं rises onto it, the wave ripples out. */
+@keyframes tile-in {
   from {
-    transform: scaleY(0.05);
+    transform: scale(0.6);
+    opacity: 0;
   }
   to {
     transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes glyph-in {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }
 
 @keyframes wave-out {
   0% {
     opacity: 0;
-    transform: translateX(-3px);
+    transform: translateX(-6px);
   }
   60% {
     opacity: 1;
@@ -363,9 +378,87 @@ button:disabled {
   }
 }
 
-@keyframes palm-in {
+.mark-animate .mark-tile {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tile-in 320ms var(--ease-snap) both;
+}
+
+.mark-animate .mark-glyph {
+  animation: glyph-in 360ms var(--ease-snap) 160ms both;
+}
+
+.mark-animate .mark-wave {
+  animation: wave-out 380ms var(--ease-snap) 420ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark-animate .mark-tile,
+  .mark-animate .mark-glyph,
+  .mark-animate .mark-wave {
+    animation: none;
+  }
+}
+
+/* ---------- Cover: opening animation ---------- */
+.intro {
+  clip-path: circle(150% at 50% 42%);
+  transition: clip-path 560ms cubic-bezier(0.7, 0, 0.3, 1);
+}
+
+.intro-leave {
+  clip-path: circle(0% at 50% 42%);
+}
+
+.intro-grid {
+  background-image: radial-gradient(rgb(36 22 18 / 0.12) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 65%);
+}
+
+@keyframes intro-tile {
+  0% {
+    transform: scale(0.4) rotate(-8deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.06) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes intro-pen {
   from {
-    transform: translateY(6px);
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.intro-tile {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: intro-tile 520ms var(--ease-snap) both;
+}
+
+.intro-pen {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: intro-pen 520ms cubic-bezier(0.5, 0, 0.3, 1) 360ms both;
+}
+
+.intro-wave {
+  animation: wave-out 420ms var(--ease-snap) both;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(0.5em);
     opacity: 0;
   }
   to {
@@ -374,28 +467,68 @@ button:disabled {
   }
 }
 
-.mark-animate .mark-finger {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: finger-rise 260ms var(--ease-snap) both;
+.intro-letter {
+  display: inline-block;
+  animation: rise 420ms var(--ease-snap) both;
 }
 
-.mark-animate .mark-thumb {
-  transform-origin: 100% 100%;
+.intro-fade {
+  animation: rise 420ms var(--ease-snap) both;
 }
 
-.mark-animate .mark-wave {
-  animation: wave-out 380ms var(--ease-snap) both;
+/* ---------- Cover page ---------- */
+.serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
-.mark-animate .mark-palm {
-  animation: palm-in 220ms var(--ease-snap) both;
+/* Warm paper with a faint dot weave and a terracotta glow behind the stage. */
+.cover-paper {
+  background-image:
+    radial-gradient(45% 55% at 78% 45%, rgb(242 107 58 / 0.16), transparent 70%),
+    radial-gradient(rgb(36 22 18 / 0.1) 1px, transparent 1.3px);
+  background-size: auto, 18px 18px;
+}
+
+/* The round stage: a dashed orbit around a terracotta disc with soft rings. */
+.stage-ring {
+  border: 2px dashed rgb(36 22 18 / 0.35);
+  animation: spin 60s linear infinite;
+}
+
+.stage-rays {
+  background: repeating-radial-gradient(circle at 50% 50%, rgb(255 250 243 / 0.1) 0 18px, transparent 18px 36px);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  animation: marquee 60s linear infinite;
+}
+
+.marquee:hover {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mark-animate .mark-finger,
-  .mark-animate .mark-wave,
-  .mark-animate .mark-palm {
+  .marquee,
+  .stage-ring,
+  .intro-tile,
+  .intro-pen,
+  .intro-wave,
+  .intro-letter,
+  .intro-fade {
     animation: none;
   }
 }

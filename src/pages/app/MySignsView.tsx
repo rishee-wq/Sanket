@@ -223,7 +223,7 @@ const Teach: React.FC<{ stage: Stage; engine: SignEngine | null; bundle: ModelBu
           {recorder.phase !== 'idle' && (
             <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-md" aria-live="assertive">
               {recorder.phase === 'countdown' ? (
-                <span key={recorder.count} className="display flap text-[140px] text-signal [text-shadow:4px_4px_0_#17140f]">
+                <span key={recorder.count} className="display flap text-[140px] text-signal [text-shadow:4px_4px_0_#241612]">
                   {recorder.count}
                 </span>
               ) : (

@@ -19,9 +19,9 @@ export interface HandStyle {
   weight: number;
 }
 
-export const ON_VIDEO: HandStyle = { colors: ['#ffc400', '#ffffff'], joint: '#17140f', weight: 4 };
-export const ON_PAPER: HandStyle = { colors: ['#17140f', '#1b3fb5'], joint: '#fffcf4', weight: 5 };
-const ACCEPTED = '#2be07f';
+export const ON_VIDEO: HandStyle = { colors: ['#f26b3a', '#f7d9c4'], joint: '#241612', weight: 4 };
+export const ON_PAPER: HandStyle = { colors: ['#241612', '#2e7d4f'], joint: '#fffaf3', weight: 5 };
+const ACCEPTED = '#8ee08a';
 const WHOLE = { x0: 0, y0: 0, x1: 1, y1: 1 };
 
 /** Draws one skeleton from pixel-space points. */
