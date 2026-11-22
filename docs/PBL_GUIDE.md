@@ -26,6 +26,7 @@ Contents:
 12. [The live demo](#12-the-live-demo)
 13. [Question bank](#13-question-bank)
 14. [Glossary](#14-glossary)
+15. [Course plan map: every unit in the project](#15-course-plan-map-every-unit-in-the-project)
 
 ---
 
@@ -50,6 +51,7 @@ Contents:
 | Few-shot ("My signs") | **75.9%** right on 15 unseen words; **68%** accepted, **4%** false matches |
 | End-to-end stream test | words **56/70**, letters **35/35**, auto **8/9** |
 | Live site | **https://sanket-woad.vercel.app** |
+| Syllabus | All **5 units** used in real code (section 15); lab experiments **1, 2, 4, 5, 7, 10** directly |
 
 The one sentence to say about AI help (say it once, early):
 > "I used Claude as a coding assistant. I'll walk you through the design decisions, the
@@ -800,7 +802,153 @@ region, speed). Measured on new people for that reason; My signs lets users adap
 **Q: If you had 6 more months?** More signers, face and body landmarks, continuous signing with CTC,
 user corrections as training data.
 
-### 13.11 If you don't know
+### 13.11 Syllabus questions, unit by unit
+
+Section 15 maps every unit to the code. These are the questions that map invites, including the
+topics the project does **not** use (have an honest answer ready for those).
+
+**Q: Which units of the course does your project cover?**
+All five. Unit I (MLP baseline, backprop, mini-batch gradient descent, momentum in Adam),
+Unit II (tensor reshaping, broadcasting, inner products), Unit III (CNN, batch norm, regularisation,
+augmentation, initialisation), Unit IV (object detection, R-CNN ideas, ResNet, GoogLeNet) and
+Unit V (RNN, deep LSTM, Transformer, latent space).
+
+**Unit I**
+
+**Q: Where are backpropagation and gradient descent in your project?**
+Every model is trained by backpropagation with mini-batch stochastic gradient descent: batches of
+64 windows (words) or 256 frames (letters), using the AdamW optimiser. The key gradient is p − y at
+the softmax output; the chain rule carries it back through every layer.
+
+**Q: Did you use momentum? What about Nesterov?**
+Yes. Adam keeps a running average of past gradients (β₁ = 0.9), which is momentum, plus a running
+average of squared gradients for a per-weight step size. Nesterov momentum evaluates the gradient
+at the look-ahead point instead of the current one, which reduces overshooting; I did not use it
+(NAdam would be the Adam version of it).
+
+**Q: Parameters versus hyperparameters in your model?**
+Parameters are learned by gradient descent: 435,696 in the words TCN (weights, biases, BatchNorm
+scales). Hyperparameters are chosen by me on the validation set: learning rate 2e-3, batch 64,
+dilations 1-2-4-8, dropout 0.4, label smoothing 0.1, window 32 frames, and the few-shot threshold 0.80.
+
+**Q: What is a McCulloch-Pitts neuron and how does it relate to your network?**
+A fixed-weight threshold unit: output 1 if Σ wᵢxᵢ ≥ θ, else 0 (a step function). Modern neurons replace
+the step with a differentiable activation (ReLU, sigmoid) so gradients can flow. The app still makes a
+step decision at the end: it accepts a letter only above 70% confidence.
+
+**Q: What is SVD? Did you use it?**
+Any matrix factors as A = U Σ Vᵀ (rotations U and V, singular values Σ). Keeping the largest singular
+values gives the best low-rank approximation; PCA is SVD of centred data. Not used: to picture the
+160-d embedding space in the Model lab I used t-SNE, which keeps local neighbourhoods better than a
+linear projection. SVD could compress the embeddings or the 136 features if memory mattered.
+
+**Unit II**
+
+**Q: Where do you use tensor reshaping?**
+The 132 features of a frame are reshaped to a 2 × 22 × 3 tensor (hand × landmark × xyz), so a 2-D
+convolution can slide along a finger. Word windows are rank-3 tensors [batch, 32, 136].
+
+**Q: Where do you use broadcasting?**
+Normalisation: the wrist point (shape [..., 1, 3]) is subtracted from all 21 points ([..., 21, 3]) and
+the result divided by the hand size ([..., 1, 1]) in one step, without loops (`ml/features.py`, the
+`keepdims=True` lines).
+
+**Q: Where is the inner product used?**
+Every Dense layer is a matrix product Wx. And the few-shot matcher compares a live sign with a taught
+one by the dot product of two unit vectors, which is cosine similarity.
+
+**Q: How do you visualise what the network learned?**
+The Model lab shows training curves, a confusion matrix and a t-SNE map of the embedding layer; Learn
+has a "What the model sees" overlay of the landmarks.
+
+**Unit III**
+
+**Q: What is Hebbian learning? Is it in your project?**
+"Neurons that fire together wire together": Δw = η·x·y, an unsupervised rule that strengthens a weight
+when its input and output are active together. Not used: my models learn by error correction
+(backpropagating a loss), which needs labels but learns far better features.
+
+**Q: Error-correction versus competitive learning?**
+Error correction changes weights in proportion to the error (target − output): that is how the
+networks are trained. Competitive learning lets units compete so only the winner responds
+(winner-take-all). The closest thing in Sanket is the few-shot matcher: the nearest prototype wins,
+and only if it beats the built-in classes by the margin.
+
+**Q: What is Boltzmann learning?**
+Learning in stochastic, energy-based networks (Boltzmann machines): units switch on with a probability
+given by an energy function, and weights move so the network's statistics match the data's. Not used:
+it is slow to train and suits generative modelling, not this classification task.
+
+**Q: How are your weights initialised?**
+Keras's default Glorot (Xavier) uniform, variance 2 / (fan_in + fan_out), which keeps activations at a
+stable scale through the layers. The Transformer's query projection uses a smaller VarianceScaling
+(1/d_k) so the attention softmax does not saturate early.
+
+**Q: 2-D or 3-D convolution?**
+The letters CNN is a 2-D convolution over the 2 × 22 × 3 hand grid; the words model is a 1-D (temporal)
+convolution. 3-D convolution (over x, y and time on video, like I3D) was considered and rejected: too
+heavy to run live in a browser and too data-hungry for 1,306 videos.
+
+**Unit IV**
+
+**Q: Is there object detection in your project?**
+Yes: on every video frame, MediaPipe's palm detector, a pretrained single-shot detector in the same
+family as SSD and YOLO, finds the hands; a second network then regresses 21 landmarks inside each box.
+It is used frozen (transfer learning), like lab experiment 5.
+
+**Q: Where are R-CNN's ideas used?**
+In time instead of space: windows of several lengths are proposed (region proposals), each is
+classified with a background class trained by IoU labelling, and non-maximum suppression keeps one
+detection per sign.
+
+**Q: Where are ResNet and GoogLeNet?**
+Both models are built from residual blocks (ResNet's out = x + F(x)). GoogLeNet's Inception module was
+rebuilt along time (`dynamic_inception`: parallel 1-, 3- and 5-wide convolutions) and compared: 60.0% on
+new people versus 64.7% for the shipped TCN.
+
+**Q: Is there segmentation?**
+Not pixel segmentation: landmarks make it unnecessary. The temporal equivalent is there: each training
+video's active segment (when the hands are raised) is found from wrist height, and windows are labelled
+by their overlap with it.
+
+**Q: Why not RetinaNet's focal loss?**
+Focal loss down-weights easy examples to cope with extreme imbalance (thousands of background boxes per
+object). My classes are roughly balanced (about 19 videos per word) and background windows are sampled
+at a controlled rate, so cross-entropy with label smoothing was enough.
+
+**Unit V**
+
+**Q: Which deep learning packages and architectures?**
+TensorFlow / Keras for training, TensorFlow.js in the browser, MediaPipe for hand tracking.
+Architectures: MLP, 2-D CNN, dilated TCN, GRU, 2-layer bidirectional LSTM, Inception-TCN, Transformer.
+
+**Q: Did you build a deep RNN?**
+Yes: the BiLSTM baseline stacks two bidirectional LSTM layers. 93.7% on held-out videos, but about
+7× slower than the TCN, which processes all frames in parallel.
+
+**Q: Where are tanh and the step function?**
+tanh squashes the candidate state inside every LSTM and GRU cell (sigmoid gates decide how much of it
+to keep). The step function is the McCulloch-Pitts activation; the app's confidence gate is a step
+decision on top of the network.
+
+**Q: Where is latent space in your project?**
+The 160-number embedding layer of the TCN is a learned latent space: similar signs land close together.
+My signs works entirely in it (prototypes and cosine similarity), and the Model lab draws it with t-SNE.
+
+**Q: Why no GAN or VAE?**
+The task is discriminative (which sign is this?), not generative. A VAE or GAN could synthesise landmark
+sequences of new "signers" to fight the main weakness (few signers), but synthetic data can teach the
+model unrealistic motion; I would accept it only if accuracy on real, held-out signers went up. That is
+a good future experiment.
+
+**Q: Which lab experiments does your project cover?**
+1 (a basic network in TensorFlow: the MLP baseline), 2 (a CNN classifier: the letters CNN), 4 (recurrent
+networks on sequences: GRU, BiLSTM), 5 (a pretrained detector on a video stream: the palm detector),
+7 (digit recognition: digits 1-9), 10 (transfer learning: frozen MediaPipe features), and partly
+8 (attention: attention pooling, squeeze-and-excitation and a self-attention Transformer compared).
+Not covered: facial recognition and GANs.
+
+### 13.12 If you don't know
 
 Say: "I haven't measured that. I'd expect X because Y, and I'd test it by Z." It shows method, and
 examiners respect it more than a guess.
@@ -848,3 +996,92 @@ examiners respect it more than a guess.
 | **Trie** | Prefix tree for fast word completion |
 | **Levenshtein distance** | Fewest edits to turn one word into another |
 | **FSM** | Finite-state machine: a small set of states and rules for moving between them |
+
+---
+
+## 15. Course plan map: every unit in the project
+
+Course plan: Deep Learning, CSAI3027P (UPES, 2026-27). Every unit has at least two topics implemented
+and measured in Sanket. Topics marked *not used* have a prepared answer in section 13.11.
+
+### Unit I: neural network foundations (CO1)
+
+| Syllabus topic | Where it is in Sanket | File |
+| --- | --- | --- |
+| Multilayer perceptrons, feed-forward networks | MLP baselines for words (87.8%) and letters; dense layers in every model | `ml/models.py` (`dynamic_mlp`, `static_mlp`) |
+| Backpropagation, gradient descent, stochastic GD | Mini-batch training by backpropagation, batch 64 / 256 | `ml/train_dynamic.py`, `ml/train_static.py` |
+| Momentum-based GD | Adam's first moment (β₁ = 0.9) is momentum; AdamW optimiser | `ml/common.py` (`make_optimizer`) |
+| Sigmoid neurons | Sigmoid gates in the squeeze-and-excitation blocks | `ml/models.py` |
+| Parameters vs hyperparameters | 435,696 learned parameters vs learning rate, batch, dilation, dropout and threshold chosen on validation | section 5.4 |
+| McCulloch-Pitts neuron, step function | The confidence gate is a threshold decision | `src/engine/spotter.ts` |
+| Nesterov GD, SVD | *not used* | |
+
+### Unit II: the maths of deep learning in code (CO1)
+
+| Syllabus topic | Where it is in Sanket | File |
+| --- | --- | --- |
+| Operations with tensors, morphing shapes | 132 features reshaped to 2 × 22 × 3; windows as [batch, 32, 136] | `ml/features.py` |
+| Array broadcasting | Wrist subtracted from all 21 points and divided by hand size in one step | `ml/features.py` (`keepdims=True`) |
+| Scalar / inner product | Dense layers (Wx); cosine similarity of unit embeddings | `src/engine/fewshot.ts` (`dot`) |
+| Matrix magic, computation in a network | All candidate windows classified in one batched GPU pass | `src/engine/model.ts` |
+| Programmatic expression of the maths | The same feature maths in Python and TypeScript, checked to 1e-5 | `ml/check_parity.py` |
+| Gradient calculation | Automatic differentiation in TensorFlow; softmax + cross-entropy gives p − y | training scripts |
+| Visualising deep learning | Training curves, confusion matrix, t-SNE of embeddings, landmark overlay | Model lab, Learn |
+
+### Unit III: learning, CNNs and training practice (CO2)
+
+| Syllabus topic | Where it is in Sanket | File |
+| --- | --- | --- |
+| Error-correction learning | Supervised training with cross-entropy | training scripts |
+| Competitive learning | Nearest-prototype matching in My signs (winner-take-all, with a margin) | `src/engine/fewshot.ts` |
+| Pattern recognition | The whole task: 70 word signs and 35 letters | |
+| Neurons, weights, biases, transfer and loss functions | ReLU, sigmoid, softmax; cross-entropy with label smoothing 0.1 | `ml/models.py` |
+| Generalisation and overfitting | Session split (94.2% → 64.7%), early stopping, training curves | section 7 |
+| GD and optimisers | AdamW, 5% warm-up then cosine decay, gradient clipping | `ml/common.py` |
+| Parameter initialisation, hyperparameter tuning | Glorot uniform; scaled query initialisation in the Transformer; tuning on validation | `ml/models.py` |
+| Batch normalisation, regularisation | BatchNorm in every block; dropout, spatial dropout, weight decay, label smoothing | `ml/models.py` |
+| Data and label preparation | Landmark extraction, hand slots, IoU labelling of windows, background class | `ml/extract_include.py`, `ml/augment.py` |
+| Data augmentation | Mirror, rotation, tilt, scale, jitter, time warp, movement size | `ml/augment.py` |
+| CNN, 2-D convolution | Letters 2-D CNN on the hand grid; temporal 1-D CNN for words | `ml/models.py` |
+| 3-D convolution | Considered (I3D-style) and rejected: too heavy and too data-hungry | section 6.2 |
+| Deep neural networks | 4-block residual TCN with attention | `ml/models.py` (`dynamic_tcn`) |
+| Hebbian, Boltzmann learning | *not used* | |
+
+### Unit IV: vision architectures (CO3)
+
+| Syllabus topic | Where it is in Sanket | File |
+| --- | --- | --- |
+| Image classification | Letter images classified through their landmarks; MediaPipe's landmark CNN | `ml/extract_static.py`, `ml/train_static.py` |
+| Object detection | MediaPipe's single-shot palm detector on every video frame | `src/hooks/useLiveLoop.ts` |
+| R-CNN, Fast / Faster R-CNN | Their recipe in time: window proposals, background class by IoU, non-maximum suppression | `ml/augment.py`, `src/engine/spotter.ts` |
+| YOLO | The same single-shot idea as the palm detector; why not trained here: section 13.5 | |
+| ResNet | Residual blocks in both models | `ml/models.py` (`residual_block`) |
+| GoogLeNet | Inception module along time, compared (60.0% on new people) | `ml/models.py` (`dynamic_inception`) |
+| Segmentation | Temporal: each video's active segment found from wrist height | `ml/extract_include.py` |
+| RetinaNet | *not used* (classes are balanced, so no focal loss needed) | |
+
+### Unit V: sequence and generative models (CO4)
+
+| Syllabus topic | Where it is in Sanket | File |
+| --- | --- | --- |
+| DL packages, important architectures | TensorFlow / Keras, TensorFlow.js, MediaPipe; seven architectures compared | `ml/models.py` |
+| RNN, deep RNN, LSTM | GRU and a 2-layer bidirectional LSTM, trained and compared | `ml/models.py` (`dynamic_gru`, `dynamic_bilstm`) |
+| Tanh and step functions | tanh inside LSTM / GRU cells; a step decision in the confidence gate | |
+| Transformers | Self-attention Transformer built from Dense / Dot / Softmax, compared (57.8%) | `ml/models.py` (`dynamic_transformer`) |
+| Latent space | The 160-d embedding, used for few-shot learning and drawn with t-SNE | `src/engine/fewshot.ts`, Model lab |
+| VAE, GAN, recursive networks | *not used* (generative; future work for synthetic signers) | |
+
+### Lab experiments
+
+| Experiment | In Sanket |
+| --- | --- |
+| 1. Basic neural network in TensorFlow | MLP baseline, trained in Keras |
+| 2. CNN for image classification | Letters CNN (99.97%) |
+| 3. Fine-tune a pretrained CNN | Partly: MediaPipe is used frozen (feature extraction, not fine-tuning) |
+| 4. RNN on sequence data | GRU and BiLSTM on landmark sequences |
+| 5. Pretrained object detector on video | MediaPipe palm detector on the live webcam |
+| 6. Facial recognition | Not covered |
+| 7. Digit recognition | Digits 1-9 in the letters model (the syllabus list also has "Hand movement recognition": the whole project) |
+| 8. Attention mechanisms compared | Partly: attention pooling, squeeze-and-excitation, self-attention Transformer |
+| 9. Synthetic data with GANs | Not covered (future work) |
+| 10. Transfer learning | Frozen MediaPipe features; My signs reuses the TCN's embedding |
